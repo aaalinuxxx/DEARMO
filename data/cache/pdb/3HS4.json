@@ -1,0 +1,10 @@
+{
+  "pdb_id": "3HS4",
+  "title": "Carbonic anhydrase II in complex with acetazolamide",
+  "method": "X-ray",
+  "resolution_angstrom": 1.54,
+  "organism": "Homo sapiens",
+  "ligand_in_structure": "acetazolamide",
+  "ligand_rmsd_reference_angstrom": 0.85,
+  "source_url": "https://www.rcsb.org/structure/3HS4"
+}

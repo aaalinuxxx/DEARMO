@@ -1,10 +1,15 @@
 {
-  "description": "Шаблон выбранной мишени; заполняется биотехнологами после выбора.",
-  "status": "not_selected",
-  "target_name": null,
-  "organism": null,
-  "target_form": null,
-  "uniprot_id": null,
+  "description": "Демо-мишень для ацетазоламида",
+  "status": "selected",
+  "target_name": "Carbonic anhydrase 2 (CA II)",
+  "organism": "Homo sapiens",
+  "target_form": "monomer",
+  "uniprot_id": "P00918",
   "chembl_target_id": null,
-  "sources": []
+  "recommended_pdb_id": "3HS4",
+  "sources": [
+    "BindingDB cache",
+    "RCSB PDB 3HS4",
+    "data/rag/acetazolamide_ca2.json"
+  ]
 }

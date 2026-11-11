@@ -1,0 +1,205 @@
+{
+  "ligand": "acetazolamide",
+  "source": "bindingdb",
+  "hit_count": "22",
+  "activities": [
+    {
+      "target_name": "Alpha-carbonic anhydrase domain-containing protein",
+      "organism": "Caenorhabditis elegans",
+      "affinity_type": "Ki",
+      "value": 35.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "ATP-binding cassette sub-family C member 3",
+      "organism": "Human",
+      "affinity_type": "IC50",
+      "value": 133000.0,
+      "relation": ">",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonate dehydratase",
+      "organism": "Porphyromonas gingivalis (Bacteroides gingivalis)",
+      "affinity_type": "Ki",
+      "value": 27.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase",
+      "organism": "Baker's yeast",
+      "affinity_type": "Ki",
+      "value": 82.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase",
+      "organism": "European seabass",
+      "affinity_type": "Ki",
+      "value": 5720.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase",
+      "organism": "Mycobacterium tuberculosis (strain ATCC 25618 / H37Rv)",
+      "affinity_type": "Ki",
+      "value": 12.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase",
+      "organism": "Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)",
+      "affinity_type": "Ki",
+      "value": 6.8,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase",
+      "organism": "Yeast",
+      "affinity_type": "Ki",
+      "value": 11.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 13",
+      "organism": "Mouse",
+      "affinity_type": "IC50",
+      "value": 490.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 13",
+      "organism": "Mouse",
+      "affinity_type": "Ki",
+      "value": 17.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 15 [19-324]",
+      "organism": "Mouse",
+      "affinity_type": "Ki",
+      "value": 72.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 2 [A65S,N67Q,E69T,I91L,F131V,K170E,L204A]",
+      "organism": "Human",
+      "affinity_type": "Ki",
+      "value": 25.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 3",
+      "organism": "Bovine",
+      "affinity_type": "Ki",
+      "value": 83400.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 3",
+      "organism": "Human",
+      "affinity_type": "Kd",
+      "value": 4600.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 3",
+      "organism": "Human",
+      "affinity_type": "Ki",
+      "value": 3.1,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 4",
+      "organism": "Human",
+      "affinity_type": "IC50",
+      "value": 17.5,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 5A, mitochondrial",
+      "organism": "Mouse",
+      "affinity_type": "Ki",
+      "value": 58.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 5B, mitochondrial",
+      "organism": "Human",
+      "affinity_type": "Kd",
+      "value": 34.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 5B, mitochondrial",
+      "organism": "Human",
+      "affinity_type": "Ki",
+      "value": 25.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 6",
+      "organism": "Human",
+      "affinity_type": "Kd",
+      "value": 9.8,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "Carbonic anhydrase 6",
+      "organism": "Human",
+      "affinity_type": "Ki",
+      "value": 11.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    },
+    {
+      "target_name": "LD26647p",
+      "organism": "Fruit fly",
+      "affinity_type": "Ki",
+      "value": 78.0,
+      "relation": "=",
+      "units": "nM",
+      "monomer_id": 10880
+    }
+  ]
+}

@@ -1,4 +1,6 @@
-# Зависимости первой версии. IT 2: после выбора окружения согласовать версии.
 rdkit
-streamlit
 pytest
+matplotlib
+pandas
+httpx
+gigachat

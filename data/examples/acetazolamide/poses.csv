@@ -1,0 +1,8 @@
+ligand_id,pocket_id,pocket_rank,p2rank_score,pose_id,vina_score,pose_file,rmsd_to_first_pose,rmsd_to_crystal
+acetazolamide,pocket1,1,0.91,1,-7.82,data/examples/acetazolamide/poses/acetazolamide_pocket1_pose1.pdbqt,0.0,0.92
+acetazolamide,pocket1,1,0.91,2,-7.35,data/examples/acetazolamide/poses/acetazolamide_pocket1_pose2.pdbqt,1.24,
+acetazolamide,pocket2,2,0.72,1,-6.45,data/examples/acetazolamide/poses/acetazolamide_pocket2_pose1.pdbqt,0.0,
+benzamidine,pocket1,1,0.45,1,-5.10,data/examples/acetazolamide/poses/benzamidine_pocket1_pose1.pdbqt,0.0,
+benzamidine,pocket2,2,0.30,1,-7.10,data/examples/acetazolamide/poses/benzamidine_pocket2_pose1.pdbqt,0.0,
+methylacetate,pocket1,1,0.20,1,-4.20,data/examples/acetazolamide/poses/methylacetate_pocket1_pose1.pdbqt,0.0,
+methylacetate,pocket2,2,0.15,1,-5.50,data/examples/acetazolamide/poses/methylacetate_pocket2_pose1.pdbqt,0.0,

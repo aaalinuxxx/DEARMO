@@ -1,0 +1,2 @@
+ligand_id,pocket_id,pocket_rank,p2rank_score,pose_id,vina_score,pose_file,rmsd_to_first_pose,rmsd_to_crystal
+BEN,active_site,1,0.99,1,-6.2,data/examples/3ptb_ben/poses/BEN_pose1.pdbqt,0.0,0.356

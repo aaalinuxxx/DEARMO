@@ -1,0 +1,7 @@
+{
+  "pdb_id": "3PTB",
+  "title": "Beta-trypsin with benzamidine (BEN)",
+  "method": "X-ray",
+  "resolution_angstrom": 1.8,
+  "note": "Контроль redocking BEN, ожидаемый RMSD ~0.356 Å"
+}

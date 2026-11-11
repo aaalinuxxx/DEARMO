@@ -1,0 +1,9 @@
+REMARK Redocking control 3PTB BEN
+ROOT
+ATOM      1  C   UNL     1       0.000   0.000   0.000  0.00  0.00           C  
+ATOM      2  N   UNL     1       1.000   0.000   0.000  0.00  0.00           N  
+ATOM      3  N   UNL     1       0.500   1.000   0.000  0.00  0.00           N  
+ATOM      4  C   UNL     1      -0.500   1.000   0.000  0.00  0.00           C  
+ATOM      5  C   UNL     1       0.000  -1.000   0.000  0.00  0.00           C  
+ENDROOT
+TORSDOF 0

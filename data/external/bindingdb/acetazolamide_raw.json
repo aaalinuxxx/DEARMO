@@ -1,0 +1,184 @@
+{
+  "getLindsByUniprotResponse" : {
+    "bdb.smile" : "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
+    "bdb.inchi" : null,
+    "bdb.hit" : "22",
+    "bdb.affinities" : [ {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Alpha-carbonic anhydrase domain-containing protein",
+      "bdb.species" : "Caenorhabditis elegans",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 35"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "ATP-binding cassette sub-family C member 3",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "IC50",
+      "bdb.affinity" : ">133000"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonate dehydratase",
+      "bdb.species" : "Porphyromonas gingivalis (Bacteroides gingivalis)",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 27"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase",
+      "bdb.species" : "Baker's yeast",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 82"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase",
+      "bdb.species" : "European seabass",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 5720"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase",
+      "bdb.species" : "Mycobacterium tuberculosis (strain ATCC 25618 / H37Rv)",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 12"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase",
+      "bdb.species" : "Vibrio cholerae serotype O1 (strain ATCC 39315 / El Tor Inaba N16961)",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 6.8"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase",
+      "bdb.species" : "Yeast",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 11"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 13",
+      "bdb.species" : "Mouse",
+      "bdb.affinity_type" : "IC50",
+      "bdb.affinity" : " 490"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 13",
+      "bdb.species" : "Mouse",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 17"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 15 [19-324]",
+      "bdb.species" : "Mouse",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 72"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 2 [A65S,N67Q,E69T,I91L,F131V,K170E,L204A]",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 25"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 3",
+      "bdb.species" : "Bovine",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 83400"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 3",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Kd",
+      "bdb.affinity" : " 4600"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 3",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 3.1"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 4",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "IC50",
+      "bdb.affinity" : " 17.5"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 5A, mitochondrial",
+      "bdb.species" : "Mouse",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 58"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 5B, mitochondrial",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Kd",
+      "bdb.affinity" : " 34"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 5B, mitochondrial",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 25"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 6",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Kd",
+      "bdb.affinity" : " 9.8"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "Carbonic anhydrase 6",
+      "bdb.species" : "Human",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 11"
+    }, {
+      "bdb.monomerid" : 10880,
+      "bdb.smiles" : "CC(=O)Nc1nnc(s1)S(=O)(=O)N",
+      "bdb.inhibitor" : "Cobweb_bdb",
+      "bdb.target" : "LD26647p",
+      "bdb.species" : "Fruit fly",
+      "bdb.affinity_type" : "Ki",
+      "bdb.affinity" : " 78"
+    } ]
+  }
+}

@@ -1,21 +1,26 @@
 {
-  "description": "Шаблон трёх сценариев; точные запросы и данные утверждает команда.",
-  "status": "not_finalized",
+  "description": "Демо-запросы для защиты кейса СИНТЕЗ №1",
+  "status": "finalized",
   "scenarios": [
     {
-      "id": "analysis",
-      "request": null,
-      "expected": null
+      "id": "target_for_ligand",
+      "request": "Подбери белок для докинга ацетазоламида. Обоснуй выбор экспериментальными данными и предложи структуру из PDB.",
+      "expected": "CA II, BindingDB Ki, PDB 3HS4, RAG-контекст, поля kind=database/calculation"
     },
     {
-      "id": "comparison",
-      "request": null,
-      "expected": null
+      "id": "dock_pockets",
+      "request": "Выполни докинг ацетазоламида в структуру 3HS4 (два верхних кармана P2Rank).",
+      "expected": "report.md, poses.csv из кеша, лучший vina_score с подписью calculation"
     },
     {
-      "id": "analog_search",
-      "request": null,
-      "expected": null
+      "id": "compare_docking",
+      "request": "Сравни три лиганда в двух карманах. Покажи, меняется ли их порядок по оценке Vina при смене кармана.",
+      "expected": "heatmap PNG, best_vina_*, ligand_ranking_by_pocket=order_changes"
+    },
+    {
+      "id": "validate_pose",
+      "request": "Проверь правдоподобность лучшей позы ацетазоламида в 3HS4.",
+      "expected": "checks_passed_percent, список геометрических проверок"
     }
   ]
 }

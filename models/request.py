@@ -9,7 +9,10 @@ class ResearchRequest:
     scenario: str | None = None
     molecules: list[str] = field(default_factory=list)
     target_id: str | None = None
-    # TODO (IT 2 + биологи): согласовать типы ограничений, единицы и допустимые значения.
+    ligand_ids: list[str] = field(default_factory=list)
+    pdb_id: str | None = None
+    poses_csv_path: str | None = None
+    pose_file: str | None = None
     constraints: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

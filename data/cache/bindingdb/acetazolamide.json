@@ -1,0 +1,32 @@
+{
+  "ligand": "acetazolamide",
+  "source": "bindingdb",
+  "cached_at": "2026-11-11",
+  "activities": [
+    {
+      "target_name": "Carbonic anhydrase 2",
+      "organism": "Homo sapiens",
+      "affinity_type": "Ki",
+      "value": 12,
+      "units": "nM",
+      "pmid": "10506783",
+      "link": "https://www.bindingdb.org/"
+    },
+    {
+      "target_name": "Carbonic anhydrase 1",
+      "organism": "Homo sapiens",
+      "affinity_type": "Ki",
+      "value": 250,
+      "units": "nM",
+      "pmid": "10506783",
+      "link": "https://www.bindingdb.org/"
+    }
+  ],
+  "recommended_target": {
+    "name": "Carbonic anhydrase 2 (CA II)",
+    "uniprot": "P00918",
+    "pdb_id": "3HS4",
+    "hypothesis": false,
+    "rationale": "Наилучшая опубликованная Ki среди изоформ; есть кокристалл с ацетазоламидом в PDB 3HS4."
+  }
+}
