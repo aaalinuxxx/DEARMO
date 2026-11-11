@@ -1,0 +1,21 @@
+{
+  "description": "Шаблон трёх сценариев; точные запросы и данные утверждает команда.",
+  "status": "not_finalized",
+  "scenarios": [
+    {
+      "id": "analysis",
+      "request": null,
+      "expected": null
+    },
+    {
+      "id": "comparison",
+      "request": null,
+      "expected": null
+    },
+    {
+      "id": "analog_search",
+      "request": null,
+      "expected": null
+    }
+  ]
+}
