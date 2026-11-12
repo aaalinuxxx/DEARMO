@@ -1,9 +1,9 @@
 {
   "files": {
-    "3HS4": "/Users/forallxyz/DEARMO/data/external/rcsb/3HS4.pdb",
-    "3PTB": "/Users/forallxyz/DEARMO/data/external/rcsb/3PTB.pdb",
-    "pubchem": "/Users/forallxyz/DEARMO/data/external/pubchem/acetazolamide.json",
-    "bindingdb": "/Users/forallxyz/DEARMO/data/external/bindingdb/acetazolamide.json"
+    "3HS4": "data/external/rcsb/3HS4.pdb",
+    "3PTB": "data/external/rcsb/3PTB.pdb",
+    "pubchem": "data/external/pubchem/acetazolamide.json",
+    "bindingdb": "data/external/bindingdb/acetazolamide.json"
   },
   "fetched_at": "2026-11-12T10:31:07.755894+00:00"
 }

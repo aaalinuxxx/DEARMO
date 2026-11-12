@@ -19,9 +19,14 @@ def validate_pose(state: WorkflowState) -> WorkflowState:
         pose_path = Path(pose_file)
         if not pose_path.is_absolute():
             pose_path = _REPO_ROOT / pose_path
-        pdb_id = state.observations.get("pdb_id") or "3HS4"
-        protein = _REPO_ROOT / "data" / "cache" / "pdb" / f"{pdb_id.upper()}.pdb"
-        protein_path = protein if protein.is_file() else None
+        pdb_id = state.observations.get("pdb_id") or state.request.pdb_id
+        protein_path = None
+        if pdb_id:
+            for folder in ("data/cache/pdb", "data/external/rcsb"):
+                protein = _REPO_ROOT / folder / f"{str(pdb_id).upper()}.pdb"
+                if protein.is_file():
+                    protein_path = protein
+                    break
 
         results = validate_pose_file(pose_path, protein_path)
         pct = pass_rate(results)

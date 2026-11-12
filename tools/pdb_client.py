@@ -159,7 +159,7 @@ def get_structure_metadata(
     }
 
 
-def search_by_ligand_target(ligand_key: str, target_hint: str | None = None) -> list[dict[str, Any]]:
+def _local_structure_index(ligand_key: str, target_hint: str | None = None) -> list[dict[str, Any]]:
     index_path = _CACHE_ROOT / "recommendations.json"
     if not index_path.is_file():
         return []
@@ -173,3 +173,54 @@ def search_by_ligand_target(ligand_key: str, target_hint: str | None = None) -> 
         hint = target_hint.lower()
         entries = [e for e in entries if hint in (e.get("protein_name") or "").lower()]
     return entries
+
+
+def search_rcsb_entries(query: str, *, limit: int = 5, timeout: float = 8.0) -> list[dict[str, Any]]:
+    """Полнотекстовый поиск RCSB, если локальный указатель структур пуст."""
+    text = " ".join(query.split())
+    if not text:
+        return []
+    body = json.dumps(
+        {
+            "query": {
+                "type": "terminal",
+                "service": "full_text",
+                "parameters": {"value": text},
+            },
+            "return_type": "entry",
+            "request_options": {"paginate": {"start": 0, "rows": limit}},
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        "https://search.rcsb.org/rcsbsearch/v2/query",
+        data=body,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return []
+    found: list[dict[str, Any]] = []
+    for hit in payload.get("result_set") or []:
+        pdb_id = str(hit.get("identifier") or "").upper()[:4]
+        if len(pdb_id) != 4:
+            continue
+        found.append(
+            {
+                "pdb_id": pdb_id,
+                "protein_name": text,
+                "score": hit.get("score"),
+                "source": "rcsb_search",
+            }
+        )
+    return found
+
+
+def search_by_ligand_target(ligand_key: str, target_hint: str | None = None) -> list[dict[str, Any]]:
+    local = _local_structure_index(ligand_key, target_hint)
+    if local:
+        return local
+    query = " ".join(part for part in (ligand_key, target_hint) if part)
+    return search_rcsb_entries(query)
