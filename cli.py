@@ -35,6 +35,10 @@ def _print_result_objects(result: ResearchResult, state: WorkflowState) -> None:
     print(f"planner: {state.planner_source}")
     print("plan: " + ", ".join(state.plan))
     print("completed: " + ", ".join(state.observations.get("completed_steps") or []))
+    if state.observations.get("pipeline_phase"):
+        print(f"phase: {state.observations['pipeline_phase']}")
+    if state.work_queue:
+        print("queue: " + ", ".join(f"{item.pocket_id}:{item.status}" for item in state.work_queue))
     if result.explanation:
         print()
         print(result.explanation)

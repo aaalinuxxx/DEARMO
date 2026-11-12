@@ -1,7 +1,9 @@
 """BindingDB: чтение кэша с метаданными даты (fetched_at), устойчивые HTTP-запросы (timeout + retry) и выбор мишени."""
 from __future__ import annotations
 
+import hashlib
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -11,16 +13,21 @@ from pathlib import Path
 from typing import Any
 
 _CACHE_ROOT = Path(__file__).resolve().parent.parent / "data" / "cache" / "bindingdb"
-_EXTERNAL = Path(__file__).resolve().parent.parent / "data" / "external" / "bindingdb" / "acetazolamide.json"
+_EXTERNAL_DIR = Path(__file__).resolve().parent.parent / "data" / "external" / "bindingdb"
 
-_ALIASES = {
-    "ацетазоламид": "acetazolamide",
-    "acetazolamid": "acetazolamide",
-    "cc(=o)nc1nnc(s(n)(=o)=o)s1": "acetazolamide",
-    "метазоламид": "methazolamide",
-    "этоксзоламид": "ethoxzolamide",
-    "бензамидин": "benzamidine",
-}
+def _cache_key(ligand_name: str, smiles: str | None = None) -> str:
+    """Ключ кэша без словаря известных молекул.
+
+    Для латинского названия это его слаг, иначе — хэш SMILES: он одинаков для
+    «ацетазоламид», «acetazolamide» и самой структуры, и не требует списка синонимов.
+    """
+    raw = (ligand_name or "").strip().lower().replace(" ", "_")
+    ascii_slug = re.sub(r"[^a-z0-9_\-]", "", raw)
+    if ascii_slug and ascii_slug == raw:
+        return ascii_slug
+    if smiles:
+        return "smi_" + hashlib.sha1(smiles.strip().encode("utf-8")).hexdigest()[:12]
+    return ascii_slug or "unknown"
 
 
 def _now_iso() -> str:
@@ -87,36 +94,96 @@ def _get_json_with_retry(url: str, *, timeout: float = 10.0, max_retries: int = 
     return None
 
 
+def _parse_affinity(raw: Any) -> tuple[str, float | None]:
+    text = str(raw).strip().replace(",", "")
+    relation = "="
+    if text[:1] in (">", "<"):
+        relation = text[0]
+        text = text[1:].strip()
+    try:
+        return relation, float(text)
+    except ValueError:
+        return relation, None
+
+
+def _activities_from_payload(payload: Any) -> list[dict[str, Any]]:
+    """Разобрать ответ getTargetByCompound: список есть и под разными обёртками."""
+    buckets: list[list] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            for key in ("bdb.affinities", "affinities"):
+                if isinstance(node.get(key), list):
+                    buckets.append(node[key])
+                    return
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list) and node and isinstance(node[0], dict):
+            buckets.append(node)
+
+    walk(payload)
+    activities: list[dict[str, Any]] = []
+    for bucket in buckets:
+        for row in bucket:
+            if not isinstance(row, dict):
+                continue
+            relation, value = _parse_affinity(row.get("bdb.affinity") or row.get("affinity"))
+            if value is None:
+                continue
+            activities.append(
+                {
+                    "target_name": row.get("bdb.target") or row.get("target"),
+                    "organism": row.get("bdb.species") or row.get("species"),
+                    "affinity_type": row.get("bdb.affinity_type") or row.get("affinity_type") or "Ki",
+                    "value": value,
+                    "relation": relation,
+                    "units": "nM",
+                    "monomer_id": row.get("bdb.monomerid") or row.get("monomerid"),
+                    "pdb_id": row.get("pdb_id"),
+                }
+            )
+    return activities
+
+
+def _looks_like_smiles(text: str) -> bool:
+    return any(ch in text for ch in "=#()[]")
+
+
 def recommend_target(record: dict[str, Any]) -> dict[str, Any] | None:
-    """Мишень для докинга — CA II по кристаллу 3HS4, не минимум Ki по всем изоформам."""
-    rows = record.get("activities") or []
-    human_ca2 = [
-        a
-        for a in rows
-        if "carbonic anhydrase 2" in (a.get("target_name") or "").lower()
-        and "human" in (a.get("organism") or "").lower()
-        and a.get("relation") == "="
-    ]
-    if not rows and record.get("recommended_target"):
-        return record["recommended_target"]
-    mutant = next((a for a in human_ca2 if "[" in (a.get("target_name") or "")), None)
-    chosen = mutant or (human_ca2[0] if human_ca2 else None)
-    hypothesis = chosen is None or "[" in (chosen.get("target_name") or "")
+    """Мишень выводится из измерений этого соединения — одинаково для любой молекулы."""
+    return _recommend_from_measurements(record)
+
+
+def _recommend_from_measurements(record: dict[str, Any]) -> dict[str, Any] | None:
+    """Лучшая измеренная строка: человек, затем Ki/Kd, затем меньшее значение. PDB не выдумывается."""
+    ranked: list[tuple[tuple, dict[str, Any]]] = []
+    for row in record.get("activities") or []:
+        if row.get("relation") not in (None, "=", ""):
+            continue
+        try:
+            value = float(row["value"])
+        except (TypeError, ValueError, KeyError):
+            continue
+        organism = (row.get("organism") or "").lower()
+        human = 0 if "human" in organism or "homo sapiens" in organism else 1
+        kind = str(row.get("affinity_type") or "").upper()
+        potency = 0 if kind in {"KI", "KD"} else 1
+        ranked.append(((human, potency, value), row))
+    if not ranked:
+        return None
+    _, chosen = sorted(ranked, key=lambda item: item[0])[0]
     return {
-        "name": "Carbonic anhydrase 2",
-        "organism": "Homo sapiens",
-        "pdb_id": "3HS4",
-        "hypothesis": hypothesis,
-        "affinity_type": None if chosen is None else chosen.get("affinity_type"),
-        "value": None if chosen is None else chosen.get("value"),
-        "units": None if chosen is None else chosen.get("units"),
-        "measured_target_name": None if chosen is None else chosen.get("target_name"),
+        "name": chosen.get("target_name"),
+        "organism": chosen.get("organism"),
+        "pdb_id": chosen.get("pdb_id"),
+        "hypothesis": False,
+        "affinity_type": chosen.get("affinity_type"),
+        "value": chosen.get("value"),
+        "units": chosen.get("units"),
+        "measured_target_name": chosen.get("target_name"),
         "rationale": (
-            "Структура 3HS4 — комплекс человеческой CA II с ацетазоламидом (RCSB). "
-            "В выгрузке BindingDB нет Ki дикого типа CA II; ближайшая строка — мутант, "
-            "поэтому аффинность не переносится на WT как факт."
-            if hypothesis
-            else "Есть измерение по человеческой CA II без пометки мутации."
+            "Мишень взята из строки BindingDB этого соединения: сначала человек, "
+            "затем Ki или Kd, затем меньшее значение. Идентификатор PDB из другой молекулы не подставляется."
         ),
     }
 
@@ -124,18 +191,19 @@ def recommend_target(record: dict[str, Any]) -> dict[str, Any] | None:
 def fetch_activities(
     ligand_name: str,
     *,
+    smiles: str | None = None,
     use_cache: bool = True,
-    timeout: float = 10.0,
+    timeout: float = 12.0,
 ) -> dict[str, Any]:
     """Получить записи активности из BindingDB (локальная предзагрузка, файловый кэш или REST API с повторами)."""
-    raw = ligand_name.strip().lower().replace(" ", "_")
-    key = _ALIASES.get(raw, raw)
+    key = _cache_key(ligand_name, smiles)
 
     # 1. Предзагруженный эталонный файл репозитория (сохраняем обратную совместимость _from_download=True)
-    if use_cache and key == "acetazolamide" and _EXTERNAL.is_file():
-        with _EXTERNAL.open(encoding="utf-8") as f:
+    preloaded = _EXTERNAL_DIR / f"{key}.json"
+    if use_cache and preloaded.is_file():
+        with preloaded.open(encoding="utf-8") as f:
             record = json.load(f)
-        fetched_at = record.get("fetched_at") or _file_mtime_iso(_EXTERNAL)
+        fetched_at = record.get("fetched_at") or _file_mtime_iso(preloaded)
         record["_from_cache"] = False
         record["_from_download"] = True
         record["is_cached"] = True
@@ -151,29 +219,31 @@ def fetch_activities(
         if cached:
             return cached
 
-    # 3. Попытка обращения к BindingDB REST API (по UniProt P00918 / CA II человека) с таймаутом и ретраями
-    api_url = (
-        "https://bindingdb.org/axis2/services/BDBService/getLigandsByUniprot"
-        f"?uniprot=P00918&cutoff=10000&code=0&response=application/json"
-    )
-    live_data = _get_json_with_retry(api_url, timeout=timeout, max_retries=3)
-    if isinstance(live_data, dict) and live_data.get("affinities"):
-        fetched_at = _now_iso()
-        matched = [
-            row
-            for row in live_data.get("affinities", [])
-            if key in str(row.get("monomerid") or row.get("smiles") or "").lower()
-        ]
-        if matched:
+    # 3. BindingDB по SMILES самого соединения, без привязки к заранее выбранной мишени.
+    query_smiles = (smiles or "").strip()
+    if not query_smiles and _looks_like_smiles(ligand_name):
+        query_smiles = ligand_name.strip()
+    if query_smiles:
+        api_url = (
+            "https://bindingdb.org/rest/getTargetByCompound"
+            f"?smiles={urllib.parse.quote(query_smiles, safe='')}&cutoff=100000&response=application/json"
+        )
+        live_data = _get_json_with_retry(api_url, timeout=timeout, max_retries=2)
+        activities = _activities_from_payload(live_data) if live_data else []
+        if activities:
             record = {
                 "ligand": ligand_name,
-                "activities": matched,
+                "smiles": query_smiles,
+                "activities": activities,
                 "source": "bindingdb_live",
                 "_from_cache": False,
                 "_from_download": False,
                 "is_cached": False,
-                "fetched_at": fetched_at,
+                "fetched_at": _now_iso(),
             }
+            rec = recommend_target(record)
+            if rec:
+                record["recommended_target"] = rec
             save_cached_activities(key, record)
             return record
 
@@ -181,7 +251,12 @@ def fetch_activities(
         "ligand": ligand_name,
         "activities": [],
         "source": "bindingdb",
-        "note": "Нет локального кеша; данные из live API BindingDB недоступны.",
+        "note": (
+            "Нет локального кеша BindingDB. Живой запрос выполняется по SMILES соединения "
+            "(getTargetByCompound) и сейчас ничего не вернул."
+            if query_smiles
+            else "Нет локального кеша BindingDB и нет SMILES, чтобы запросить активности соединения."
+        ),
         "_from_cache": False,
         "_from_download": False,
         "is_cached": False,

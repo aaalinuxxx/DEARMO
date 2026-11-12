@@ -1,4 +1,4 @@
-"""Маршрутизация workflow без GigaChat."""
+"""Маршрутизация workflow на ключевых словах, без вызова Qwen."""
 from models.request import ResearchRequest
 from orchestration.scenarios import classify_by_keywords
 from orchestration.workflow import run_workflow

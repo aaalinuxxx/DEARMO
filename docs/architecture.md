@@ -2,7 +2,7 @@
 
 ## Паттерн
 
-Иерархический конвейер: **GigaChat-планировщик** (с keyword fallback) → **детерминированные handlers** → **review_agent** (программная проверка Evidence).
+Иерархический конвейер: **планировщик на локальной Qwen** (Ollama, с keyword fallback) → **детерминированные handlers и ORC** → **review_agent**.
 
 ## Роли агентов
 
@@ -28,7 +28,7 @@
 ## Внешние зависимости
 
 - **Обязательные:** RDKit, PubChem (с fallback), локальные кеши BindingDB/PDB.
-- **Опциональные:** GigaChat API (`GIGACHAT_CREDENTIALS`), P2Rank/Vina binaries, PoseBusters.
+- **Опциональные:** Ollama с `qwen2.5:7b-instruct`, бинарники P2Rank и Vina, PoseBusters.
 
 ## Каталоги артефактов
 

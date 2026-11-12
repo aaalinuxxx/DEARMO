@@ -32,89 +32,6 @@ except ImportError:  # pragma: no cover — fallback для минимально
     _RDKIT_VERSION = "rdkit-compat-fallback"
 
 
-# Справочные значения для детерминированного fallback-режима (при отсутствии C++ RDKit в CI)
-_REFERENCE_MOLS: dict[str, dict[str, Any]] = {
-    "CCO": {
-        "canonical_smiles": "CCO",
-        "molecular_weight": 46.069,
-        "logp": -0.0014,
-        "tpsa": 20.23,
-        "hbd": 1,
-        "hba": 1,
-        "rotatable_bonds": 0,
-        "qed": 0.4068,
-    },
-    "CC(=O)Oc1ccccc1C(=O)O": {
-        "canonical_smiles": "CC(=O)Oc1ccccc1C(=O)O",
-        "molecular_weight": 180.159,
-        "logp": 1.3101,
-        "tpsa": 63.60,
-        "hbd": 1,
-        "hba": 3,
-        "rotatable_bonds": 2,
-        "qed": 0.5501,
-    },
-    "CC(=O)Nc1nnc(S(N)(=O)=O)s1": {
-        "canonical_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-        "molecular_weight": 222.249,
-        "logp": -0.8561,
-        "tpsa": 115.04,
-        "hbd": 2,
-        "hba": 6,
-        "rotatable_bonds": 2,
-        "qed": 0.6318,
-    },
-    "CN1N=C(S(=O)(=O)N)SC1=NC(=O)C": {
-        "canonical_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-        "molecular_weight": 236.276,
-        "logp": -0.5502,
-        "tpsa": 106.25,
-        "hbd": 1,
-        "hba": 6,
-        "rotatable_bonds": 2,
-        "qed": 0.6642,
-    },
-    "CCOc1ccc2nc(S(N)(=O)=O)sc2c1": {
-        "canonical_smiles": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1",
-        "molecular_weight": 258.324,
-        "logp": 2.0086,
-        "tpsa": 82.21,
-        "hbd": 1,
-        "hba": 5,
-        "rotatable_bonds": 3,
-        "qed": 0.7854,
-    },
-    "NC(=N)C1=CC=CC=C1": {
-        "canonical_smiles": "NC(=N)c1ccccc1",
-        "molecular_weight": 120.155,
-        "logp": 1.1069,
-        "tpsa": 49.87,
-        "hbd": 2,
-        "hba": 1,
-        "rotatable_bonds": 1,
-        "qed": 0.5312,
-    },
-    "NC(=N)c1ccccc1": {
-        "canonical_smiles": "NC(=N)c1ccccc1",
-        "molecular_weight": 120.155,
-        "logp": 1.1069,
-        "tpsa": 49.87,
-        "hbd": 2,
-        "hba": 1,
-        "rotatable_bonds": 1,
-        "qed": 0.5312,
-    },
-    "CC(=O)OC": {
-        "canonical_smiles": "COC(C)=O",
-        "molecular_weight": 74.079,
-        "logp": 0.3712,
-        "tpsa": 26.30,
-        "hbd": 0,
-        "hba": 2,
-        "rotatable_bonds": 0,
-        "qed": 0.4211,
-    },
-}
 
 _SALT_FRAGMENTS = {
     "Cl", "[Cl-]", "Br", "[Br-]", "I", "[I-]", "F", "[F-]",
@@ -265,8 +182,7 @@ def standardize_smiles(smiles: str, *, desalt: bool = True) -> dict[str, Any]:
     else:
         parent_str = raw_text
 
-    ref = _REFERENCE_MOLS.get(parent_str)
-    canonical = ref["canonical_smiles"] if ref else parent_str
+    canonical = parent_str
     limitations = []
     if had_salt and desalt:
         limitations.append(
@@ -398,59 +314,6 @@ def evaluate_filters(
     }
 
 
-def _fallback_descriptors(canonical_smiles: str) -> dict[str, float | int]:
-    """Оценка дескрипторов для fallback-режима, если молекулы нет в справочнике."""
-    if canonical_smiles in _REFERENCE_MOLS:
-        ref = _REFERENCE_MOLS[canonical_smiles]
-        return {
-            "molecular_weight": ref["molecular_weight"],
-            "logp": ref["logp"],
-            "tpsa": ref["tpsa"],
-            "hbd": ref["hbd"],
-            "hba": ref["hba"],
-            "rotatable_bonds": ref["rotatable_bonds"],
-            "qed": ref["qed"],
-        }
-    s = canonical_smiles
-    c_count = s.count("C") + s.count("c") - s.count("Cl") - s.count("Ca")
-    n_count = s.count("N") + s.count("n") - s.count("Na")
-    o_count = s.count("O") + s.count("o")
-    s_count = s.count("S") + s.count("s") - s.count("Si") - s.count("Se")
-    f_count = s.count("F")
-    cl_count = s.count("Cl")
-    br_count = s.count("Br")
-
-    mw = (
-        c_count * 12.011
-        + n_count * 14.007
-        + o_count * 15.999
-        + s_count * 32.06
-        + f_count * 18.998
-        + cl_count * 35.45
-        + br_count * 79.904
-        + max(2, c_count + n_count) * 1.008
-    )
-    hba = n_count + o_count
-    hbd = s.count("N") + s.count("O") - s.count("=O") - s.count("(=O)")
-    hbd = max(0, min(hbd, hba))
-    tpsa = round(o_count * 18.5 + n_count * 15.6 + s_count * 8.4, 2)
-    logp = round((c_count * 0.45 + cl_count * 0.6 + br_count * 0.8) - (o_count * 0.7 + n_count * 0.6), 4)
-    rot_bonds = max(0, (c_count + n_count + o_count) // 4 - 1)
-    # Оценка QED (0..1): снижается при больших MW/TPSA/rot_bonds
-    mw_pen = math.exp(-((mw - 300.0) / 220.0) ** 2)
-    logp_pen = math.exp(-((logp - 2.5) / 3.0) ** 2)
-    tpsa_pen = 1.0 if tpsa <= 140 else max(0.05, 1.0 - (tpsa - 140) / 150.0)
-    qed = round(max(0.05, min(0.95, 0.35 + 0.35 * mw_pen + 0.2 * logp_pen)) * tpsa_pen, 4)
-    return {
-        "molecular_weight": round(mw, 3),
-        "logp": logp,
-        "tpsa": tpsa,
-        "hbd": int(hbd),
-        "hba": int(hba),
-        "rotatable_bonds": int(rot_bonds),
-        "qed": qed,
-    }
-
 
 def calculate_descriptors(
     smiles: str,
@@ -478,7 +341,15 @@ def calculate_descriptors(
             "qed": round(float(QED.qed(mol)), 4),
         }
     else:
-        desc_map = _fallback_descriptors(canonical)
+        # Без RDKit дескрипторы не считаются. Оценка «на глазок» по строке SMILES
+        # была бы выдуманным числом с подписью «расчёт RDKit» — это недопустимо.
+        return ResearchResult(
+            status="error",
+            errors=[
+                "RDKit недоступен, дескрипторы не рассчитаны. "
+                "Установите rdkit: приблизительные значения не подставляются."
+            ],
+        )
 
     filter_result = evaluate_filters(desc_map, constraints=constraints, mol=mol if _RDKIT_AVAILABLE else None)
 

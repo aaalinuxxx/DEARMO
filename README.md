@@ -4,6 +4,31 @@
 
 Графического интерфейса нет. Всё запускается из терминала через `cli.py`.
 
+## Локальный Qwen (Ollama)
+
+Планировщик и текстовое объяснение идут в Qwen, если поднят Ollama. Числа по-прежнему считают RDKit, BindingDB и таблицы докинга.
+
+```bash
+ollama pull qwen2.5:7b-instruct
+export DEARMO_LLM_PROVIDER=ollama
+export OLLAMA_MODEL=qwen2.5:7b-instruct
+python cli.py ask "Подбери белок для докинга ацетазоламида и предложи PDB."
+```
+
+В ответе строка `planner` начинается с `ollama:`. Облачных моделей нет. Без сервера поставьте `DEARMO_LLM_PROVIDER=keyword` или оставьте `auto`: система коротко проверяет `http://127.0.0.1:11434` и откатывается на ключевые слова.
+
+Докинг внутри сценария ведёт ORC: два кармана из сохранённого прогона обрабатываются параллельно, затем Writer пишет `outputs/runs/<id>/report.md`. В терминале видны `phase` и `queue`.
+
+Docker:
+
+```bash
+docker compose up -d ollama
+docker compose exec ollama ollama pull qwen2.5:7b-instruct
+docker compose run --rm dearmo ask "Выполни докинг ацетазоламида в структуру 3HS4"
+```
+
+Переменные: `OLLAMA_HOST`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_S`, `ORC_MAX_POCKETS`, `ORC_RAG_MIN_SCORE`.
+
 ## Быстрый старт
 
 ```bash
@@ -27,7 +52,7 @@ python -m pytest -q
 В терминале печатаются:
 
 - `status` — `success`, `error`, `no_data` или `needs_clarification`;
-- `planner` — `gigachat`, если сработал облачный вызов, иначе `keyword`;
+- `planner` — `ollama:…`, если ответила локальная Qwen, иначе `keyword`;
 - `plan` и `completed` — какие сценарии вошли в план и какие дошли до конца;
 - таблица Evidence: `kind`, метод, значение, источник;
 - `limitations` и `errors`;
@@ -44,8 +69,8 @@ python -m pytest -q
 flowchart TD
   query[Запрос в cli.py]
   planner[planner]
+  qwen[Локальная Qwen через Ollama]
   keywords[Ключевые слова]
-  gigachat[GigaChat если задан ключ]
   plan[Список сценариев]
   executor[executor]
   repair[Подставить PDB и лиганд из прошлых шагов]
@@ -54,9 +79,9 @@ flowchart TD
   out[Текст в терминал]
 
   query --> planner
-  planner --> gigachat
-  gigachat -->|нет ключа или не JSON| keywords
-  gigachat -->|JSON| plan
+  planner --> qwen
+  qwen -->|сервер недоступен или не JSON| keywords
+  qwen -->|JSON| plan
   keywords --> plan
   plan --> executor
   executor --> repair
@@ -105,7 +130,7 @@ flowchart LR
 
 | Агент | Задача | Инструменты |
 | --- | --- | --- |
-| `planner` | Сценарии, лиганд, PDB, пути к файлам | GigaChat или ключевые слова, [`prompts/planner.txt`](prompts/planner.txt) |
+| `planner` | Сценарии, лиганд, PDB, пути к файлам | Локальная Qwen или ключевые слова, [`prompts/planner.txt`](prompts/planner.txt) |
 | `data_agent` | Активности и литература | BindingDB, PubChem, [`data/rag/`](data/rag/) |
 | `structure_agent` | Какую структуру брать | RCSB: скачанный JSON и PDB |
 | `chemistry_agent` | Дескрипторы лиганда | RDKit |
@@ -144,9 +169,10 @@ BindingDB по SMILES ацетазоламида отдаёт 22 измерен�
 | Терминальный вход `cli.py ask` | Сделано | Печатает статус, Evidence, трассу, артефакты |
 | Четыре сценария и составной план | Сделано | `orchestration/executor.py`, повтор шага один раз |
 | Планировщик без облака | Сделано | Ключевые слова в `orchestration/scenarios.py` |
-| GigaChat как планировщик и автор текста | Подключено, не обязательно | Нужен `GIGACHAT_CREDENTIALS`; при ошибке тихий откат на ключевые слова |
-| Локальная модель (Ollama и аналоги) | Нет | Клиент заточен под пакет `gigachat` |
-| Docker | Нет | Запуск только через venv |
+| Локальная Qwen через Ollama | Сделано | Единственная LLM: `orchestration/llm_client.py`, модель `qwen2.5:7b-instruct` |
+| Облачные LLM, включая GigaChat | Не используем | Запасной путь — только ключевые слова |
+| Docker Compose (Ollama + DEARMO) | Сделано | `docker-compose.yml`, `Dockerfile` |
+| ORC: карман = воркер, очередь, Writer | Сделано | `orchestration/orc.py`, параллельный `asyncio.gather` |
 | BindingDB по ацетазоламиду | Сделано | 22 строки в `data/external/bindingdb/` |
 | RCSB 3HS4 и 3PTB | Сделано | PDB и JSON записи в `data/external/rcsb/` |
 | PubChem CID 1986 | Сделано | `data/external/pubchem/acetazolamide.json` |
@@ -167,7 +193,7 @@ BindingDB по SMILES ацетазоламида отдаёт 22 измерен�
 ```
 cli.py                         запрос и скачивание данных
 agents/                        роли: план, данные, структура, химия, докинг, анализ, валидация, проверка
-orchestration/                 workflow, executor, сценарии, состояние, клиент GigaChat
+orchestration/                 workflow, executor, ORC, сценарии, клиент Ollama
 tools/                         BindingDB, PDB, PubChem, RDKit, RAG, графики, обёртки Vina и P2Rank
 models/                        ResearchRequest, ResearchResult, Evidence, строки poses.csv
 prompts/                       текст планировщика
@@ -195,15 +221,7 @@ python cli.py fetch-data
 - PubChem: свойства ацетазоламида;
 - BindingDB `getTargetByCompound` по SMILES `CC(=O)Nc1nnc(S(N)(=O)=O)s1`.
 
-Облачная модель необязательна. Демо-фразы проходят на ключевых словах.
-
-```bash
-export GIGACHAT_CREDENTIALS="<authorization key>"
-export GIGACHAT_MODEL="GigaChat-Pro"          # по умолчанию GigaChat
-export GIGACHAT_VERIFY_SSL_CERTS=false        # сертификат НУЦ Минцифры
-```
-
-Ключ в репозиторий не кладётся. Модель выбирает сценарий и может пересказать уже собранные факты. Она не имеет права добавлять числа, которых нет в Evidence: это проверяет `review_agent`.
+Языковая модель только локальная. Демо-фразы проходят и без неё, на ключевых словах. Qwen выбирает сценарий и может пересказать уже собранные факты. Она не имеет права добавлять числа, которых нет в Evidence: это проверяет `review_agent`.
 
 Живой докинг, если на машине есть бинарники:
 

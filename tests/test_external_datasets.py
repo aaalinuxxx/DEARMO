@@ -19,14 +19,18 @@ def test_downloaded_pdb_is_ca2_acetazolamide():
     assert meta["_from_download"] is True
 
 
-def test_bindingdb_download_has_human_anhydrase_rows():
+def test_bindingdb_recommendation_comes_from_measurements():
+    """Мишень выводится из строк BindingDB, а не из зашитого соответствия молекуле."""
     record = fetch_activities("acetazolamide")
     assert record["_from_download"] is True
     assert len(record["activities"]) >= 20
-    assert record["recommended_target"]["pdb_id"] == "3HS4"
-    assert record["recommended_target"]["hypothesis"] is True
-    names = " ".join(a["target_name"] for a in record["activities"])
-    assert "Carbonic anhydrase" in names
+
+    rec = record["recommended_target"]
+    measured_names = {a.get("target_name") for a in record["activities"]}
+    # Имя рекомендованной мишени обязано присутствовать среди измеренных строк.
+    assert rec["name"] in measured_names
+    # PDB не выдумывается: он либо пришёл из той же строки, либо отсутствует.
+    assert rec.get("pdb_id") in {None, *(a.get("pdb_id") for a in record["activities"])}
 
 
 def test_pubchem_download_cid():

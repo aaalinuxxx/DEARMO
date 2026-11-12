@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agents import analysis_agent, chemistry_agent, data_agent, docking_agent, structure_agent, validation_agent
+from agents import analysis_agent, chemistry_agent, data_agent, structure_agent, validation_agent
+from orchestration.orc import run_dock_pipeline
 from orchestration.state import WorkflowState
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -24,10 +25,7 @@ def handle_dock_pockets(state: WorkflowState) -> WorkflowState:
         state.observations["pdb_id"] = state.request.pdb_id
     if not state.observations.get("ligand_id") and state.request.ligand_ids:
         state.observations["ligand_id"] = state.request.ligand_ids[0]
-    state = chemistry_agent.resolve_ligand(state)
-    state = structure_agent.select_structure(state)
-    state = docking_agent.run_or_load(state, example_dir=_DEFAULT_EXAMPLE_DIR)
-    return state
+    return run_dock_pipeline(state, example_dir=_DEFAULT_EXAMPLE_DIR)
 
 
 def handle_compare_docking(state: WorkflowState) -> WorkflowState:

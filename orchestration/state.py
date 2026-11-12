@@ -7,6 +7,7 @@ from typing import Any
 
 from models.request import ResearchRequest
 from models.result import Evidence
+from orchestration.work_queue import WorkItem
 
 MAX_WORKFLOW_STEPS = 40
 MAX_REVIEW_RETRIES = 1
@@ -29,6 +30,7 @@ class WorkflowState:
     step_count: int = 0
     explanation: str | None = None
     planner_source: str | None = None
+    work_queue: list[WorkItem] = field(default_factory=list)
 
     def add_evidence(self, evidence: Evidence) -> None:
         self.evidence.append(evidence)

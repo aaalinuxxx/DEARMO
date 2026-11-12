@@ -5,7 +5,7 @@ from agents import planner, review_agent
 from models.request import ResearchRequest
 from models.result import ResearchResult
 from orchestration.executor import execute_plan
-from orchestration.gigachat_client import narrate_with_gigachat
+from orchestration.llm_client import narrate_with_llm
 from orchestration.state import WorkflowState
 
 
@@ -15,7 +15,7 @@ def _build_explanation(state: WorkflowState) -> str:
         src = ev.source or ev.method or ev.kind
         lines.append(f"- [{ev.kind}] {ev.method or 'value'}={ev.value} ({src})")
     summary = "\n".join(lines) if lines else "Данных для объяснения нет."
-    narrated = narrate_with_gigachat(summary, state.limitations)
+    narrated = narrate_with_llm(summary, state.limitations)
     if narrated:
         return narrated
     if state.scenario_id:

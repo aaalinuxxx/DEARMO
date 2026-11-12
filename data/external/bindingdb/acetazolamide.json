@@ -201,5 +201,7 @@
       "units": "nM",
       "monomer_id": 10880
     }
-  ]
+  ],
+  "downloaded_at": "2026-11-12T10:31:07.755437+00:00",
+  "url": "https://bindingdb.org/rest/getTargetByCompound?smiles=CC%28%3DO%29Nc1nnc%28S%28N%29%28%3DO%29%3DO%29s1&cutoff=100000&response=application/json"
 }

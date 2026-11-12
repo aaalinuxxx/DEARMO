@@ -3,4 +3,3 @@ pytest
 matplotlib
 pandas
 httpx
-gigachat

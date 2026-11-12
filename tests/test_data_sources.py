@@ -169,7 +169,7 @@ def test_chembl_fetch_activities_with_mock_api(tmp_path, monkeypatch):
         ]
     }
     with patch.object(chembl_client, "_get_json", return_value=mock_payload):
-        rows = chembl_client.fetch_activities("CHEMBL205", "acetazolamide", use_cache=True)
+        rows = chembl_client.fetch_activities("CHEMBL205", "CHEMBL20", use_cache=True)
 
     assert len(rows) == 1
     row = rows[0]
@@ -183,7 +183,7 @@ def test_chembl_fetch_activities_with_mock_api(tmp_path, monkeypatch):
 
     # Второй вызов должен читаться из локального кэша с is_cached=True и сохранённой датой fetched_at
     with patch.object(chembl_client, "_get_json", return_value=None):
-        cached_rows = chembl_client.fetch_activities("CHEMBL205", "acetazolamide", use_cache=True)
+        cached_rows = chembl_client.fetch_activities("CHEMBL205", "CHEMBL20", use_cache=True)
     assert len(cached_rows) == 1
     assert cached_rows[0]["is_cached"] is True
     assert cached_rows[0]["fetched_at"] == row["fetched_at"]
@@ -226,22 +226,56 @@ def test_pubchem_resolve_by_smiles_uses_post(tmp_path, monkeypatch):
     assert res["ambiguous"] is False
 
 
-def test_pubchem_ambiguous_name_returns_candidates():
-    """Неоднозначное название (например, 'сульфонамид') возвращает флаг ambiguous=True и список кандидатов."""
-    res = pubchem_client.resolve_compound("сульфонамид")
+def test_pubchem_ambiguous_name_returns_candidates(tmp_path, monkeypatch):
+    """Неоднозначность определяется тем, что поиск вернул РАЗНЫЕ структуры, без словаря имён."""
+    monkeypatch.setattr(pubchem_client, "_CACHE_DIR", tmp_path / "amb_cache")
+    payload = {
+        "PropertyTable": {
+            "Properties": [
+                {"CID": 111, "Title": "Compound A", "ConnectivitySMILES": "CCO"},
+                {"CID": 222, "Title": "Compound B", "ConnectivitySMILES": "CCN"},
+            ]
+        }
+    }
+    with patch.object(pubchem_client, "_request_json", return_value=payload):
+        res = pubchem_client.resolve_compound("some-class-name")
+
     assert res["ambiguous"] is True
     assert res["status"] == "needs_clarification"
     assert len(res["candidates"]) >= 2
+    assert {c["cid"] for c in res["candidates"]} == {111, 222}
 
 
 def test_pubchem_search_similar_returns_analogs_with_tanimoto(tmp_path, monkeypatch):
-    """Поиск похожих соединений возвращает список аналогов с рассчитанным Tanimoto similarity."""
+    """Аналоги приходят из ответа PubChem, Tanimoto считает RDKit, сортировка по убыванию."""
     monkeypatch.setattr(pubchem_client, "_CACHE_DIR", tmp_path / "pubchem_sim_cache")
-    with patch.object(pubchem_client, "_request_json", return_value=None):
+    cids = {"IdentifierList": {"CID": [4100, 3295]}}
+    props = {
+        "PropertyTable": {
+            "Properties": [
+                {"CID": 4100, "Title": "Methazolamide",
+                 "ConnectivitySMILES": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C", "MolecularWeight": "236.28"},
+                {"CID": 3295, "Title": "Ethoxzolamide",
+                 "ConnectivitySMILES": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1", "MolecularWeight": "258.32"},
+            ]
+        }
+    }
+    with patch.object(pubchem_client, "_request_json", return_value=cids), \
+         patch.object(pubchem_client, "_get_json", return_value=props):
         sim = pubchem_client.search_similar("CC(=O)Nc1nnc(S(N)(=O)=O)s1", threshold=80, max_records=4)
 
     assert sim["status"] == "success"
-    assert len(sim["analogs"]) >= 2
+    assert len(sim["analogs"]) == 2
     assert all("tanimoto_similarity" in a for a in sim["analogs"])
     assert sim["analogs"][0]["tanimoto_similarity"] >= sim["analogs"][-1]["tanimoto_similarity"]
     assert sim["fetched_at"]
+
+
+def test_pubchem_search_similar_without_network_returns_no_data(tmp_path, monkeypatch):
+    """Без ответа сети выдаётся no_data, а НЕ оффлайн-каталог чужих молекул."""
+    monkeypatch.setattr(pubchem_client, "_CACHE_DIR", tmp_path / "pubchem_sim_cache2")
+    with patch.object(pubchem_client, "_request_json", return_value=None):
+        sim = pubchem_client.search_similar("CC(=O)Oc1ccccc1C(=O)O", threshold=80, max_records=4)
+
+    assert sim["status"] == "no_data"
+    assert sim["analogs"] == []

@@ -1,10 +1,10 @@
-"""Планировщик: сценарий, сущности, проверка неоднозначности и неподтверждённых выводов (GigaChat + keyword fallback)."""
+"""Планировщик: сценарий и сущности. Qwen через Ollama, иначе ключевые слова."""
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from orchestration.gigachat_client import PlannerExtraction, plan_with_gigachat
+from orchestration.llm_client import PlannerExtraction, plan_with_llm
 from orchestration.scenarios import SCENARIO_IDS, SCENARIO_TARGET_FOR_LIGAND, classify_all_keywords
 from orchestration.state import WorkflowState
 from orchestration.task_graph import order_scenarios
@@ -176,7 +176,7 @@ def _apply_extraction(state: WorkflowState, ext: PlannerExtraction) -> WorkflowS
 def plan(state: WorkflowState) -> WorkflowState:
     with state.agent_step("planner", "classify"):
         text = state.request.text
-        ext = plan_with_gigachat(text, _load_system_prompt())
+        ext = plan_with_llm(text, _load_system_prompt())
         if ext is None:
             ext = _keyword_extraction(text)
         return _apply_extraction(state, ext)
