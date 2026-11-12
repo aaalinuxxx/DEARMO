@@ -1,4 +1,4 @@
-"""Маршрутизация сценариев, лимиты шагов, сборка ResearchResult."""
+"""Маршрутизация сценариев, лимиты шагов, ранний выход на уточнение и сборка ResearchResult."""
 from __future__ import annotations
 
 from agents import planner, review_agent
@@ -23,11 +23,19 @@ def _build_explanation(state: WorkflowState) -> str:
     return "Не удалось классифицировать запрос."
 
 
+def _needs_clarification(state: WorkflowState) -> bool:
+    return any("уточн" in e.lower() for e in state.errors) or bool(
+        state.observations.get("clarification_candidates")
+    )
+
+
 def _result_status(state: WorkflowState) -> str:
+    # Проверка на неоднозначность/уточнение ДО проверки отсутствия evidence,
+    # иначе неоднозначный запрос на этапе planner ошибочно получает status="error".
+    if _needs_clarification(state):
+        return "needs_clarification"
     if state.errors and not state.evidence:
         return "error"
-    if any("уточн" in e.lower() for e in state.errors):
-        return "needs_clarification"
     if not state.evidence:
         return "no_data"
     if not state.review_passed:
@@ -43,6 +51,9 @@ def run_workflow(request: ResearchRequest) -> tuple[ResearchResult, WorkflowStat
         state.add_error(str(exc))
         return _finalize(state)
 
+    if _needs_clarification(state):
+        return _finalize(state)
+
     if state.scenario_id is None:
         state.add_error("Не удалось определить сценарий. Уточните: мишень, докинг, сравнение или валидация позы.")
         return _finalize(state)
@@ -56,6 +67,9 @@ def run_workflow(request: ResearchRequest) -> tuple[ResearchResult, WorkflowStat
     except Exception as exc:  # noqa: BLE001 — граница workflow
         state.add_error(f"Ошибка сценария: {exc}")
 
+    if _needs_clarification(state):
+        return _finalize(state)
+
     state = review_agent.review(state)
     state.explanation = _build_explanation(state)
     return _finalize(state)
@@ -64,7 +78,7 @@ def run_workflow(request: ResearchRequest) -> tuple[ResearchResult, WorkflowStat
 def _finalize(state: WorkflowState) -> tuple[ResearchResult, WorkflowState]:
     status = _result_status(state)
     if status == "needs_clarification" and not state.errors:
-        state.add_error("Недостаточно входных данных для сценария.")
+        state.add_error("Недостаточно входных данных для сценария. Уточните запрос.")
     result = ResearchResult(
         status=status,
         evidence=list(state.evidence),

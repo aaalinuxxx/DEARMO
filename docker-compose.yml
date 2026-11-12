@@ -1,0 +1,19 @@
+services:
+  dearmo-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data/cache:/app/data/cache
+    entrypoint: ["python", "cli.py"]
+    command: ["demo", "--export-dir", "outputs/demo"]
+
+  dearmo-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    entrypoint: ["pytest"]
+    command: ["-v", "tests/"]

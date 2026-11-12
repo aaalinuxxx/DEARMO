@@ -1,4 +1,4 @@
-"""Агент структур: PDB метаданные и рекомендации."""
+"""Агент структур: выбор PDB-структуры, получение метаданных с датой кэша и сохранение в Evidence."""
 from __future__ import annotations
 
 from models.result import Evidence
@@ -28,13 +28,20 @@ def select_structure(state: WorkflowState) -> WorkflowState:
         state.request.pdb_id = pdb_id
         meta = get_structure_metadata(pdb_id)
         state.observations["pdb_meta"] = meta
+        is_cached = bool(meta.get("is_cached") or meta.get("_from_cache") or meta.get("_from_download"))
+        fetched_at = meta.get("fetched_at")
+
         state.add_evidence(
             Evidence(
                 kind="database",
                 value=pdb_id,
                 method="pdb_structure",
                 source="RCSB PDB",
-                context=meta,
+                context={
+                    **meta,
+                    "is_cached": is_cached,
+                    "fetched_at": fetched_at,
+                },
             )
         )
         if meta.get("resolution_angstrom"):
@@ -45,7 +52,11 @@ def select_structure(state: WorkflowState) -> WorkflowState:
                     unit="Å",
                     method="resolution",
                     source="RCSB PDB",
-                    context={"pdb_id": pdb_id},
+                    context={
+                        "pdb_id": pdb_id,
+                        "is_cached": is_cached,
+                        "fetched_at": fetched_at,
+                    },
                 )
             )
-    return state
+        return state
