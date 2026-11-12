@@ -1,0 +1,7 @@
+{
+  "pdb_id": "3PTB",
+  "ligand_id": "BEN",
+  "smiles": "NC(=N)c1ccccc1",
+  "engine": "AutoDock Vina",
+  "note": "Контроль редокинга: RMSD до кристаллического лиганда."
+}

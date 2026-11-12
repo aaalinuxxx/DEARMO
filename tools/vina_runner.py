@@ -8,7 +8,13 @@ from pathlib import Path
 
 
 def vina_binary() -> str | None:
-    return os.environ.get("VINA_BIN") or shutil.which("vina")
+    configured = os.environ.get("VINA_BIN")
+    if configured and Path(configured).is_file():
+        return configured
+    bundled = Path(__file__).resolve().parent / "bin" / "vina"
+    if bundled.is_file():
+        return str(bundled)
+    return shutil.which("vina")
 
 
 def run_vina(
