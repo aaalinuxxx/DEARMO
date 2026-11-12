@@ -7,6 +7,7 @@ from orchestration.handlers import (
     handle_target_for_ligand,
     handle_validate_pose,
 )
+from orchestration.scenarios import missing_required_keys, producer_for
 from orchestration.state import WorkflowState
 from orchestration.task_graph import PlanStep, steps_from_ids
 
@@ -33,14 +34,54 @@ def _repair(state: WorkflowState, scenario_id: str) -> None:
         state.observations["pose_file"] = state.observations["best_pose"]
 
 
+_MAX_DEPENDENCY_DEPTH = 2
+
+
+def _ensure_inputs(state: WorkflowState, scenario_id: str, completed: list[str], depth: int = 0) -> None:
+    """Достроить недостающие входы сценария, выполнив шаги, которые их производят.
+
+    Запрос «проверь позу X» не содержит ни структуры, ни позы. Вместо отказа
+    система сама planирует докинг, а при необходимости и подбор мишени перед ним.
+    Глубина ограничена, чтобы цепочка зависимостей не могла зациклиться.
+    """
+    if depth >= _MAX_DEPENDENCY_DEPTH:
+        return
+    _repair(state, scenario_id)
+    for key in missing_required_keys(state.observations, scenario_id):
+        producer = producer_for(key)
+        if not producer or producer == scenario_id or producer in completed:
+            continue
+        state.trace(
+            "orchestrator",
+            f"resolve:{key}",
+            detail=f"для {scenario_id} не хватает {key} — добавлен шаг {producer}",
+        )
+        state.observations.setdefault("auto_steps", []).append(
+            {"for": scenario_id, "missing": key, "added": producer}
+        )
+        _ensure_inputs(state, producer, completed, depth + 1)
+        if producer not in completed:
+            _run_step(state, PlanStep(scenario_id=producer, reason=f"dependency:{key}"), completed)
+
+
 def execute_plan(state: WorkflowState) -> WorkflowState:
     ids = state.observations.get("scenario_ids") or ([state.scenario_id] if state.scenario_id else [])
     steps = steps_from_ids(ids, source=state.planner_source or "plan")
     completed: list[str] = []
     for step in steps:
+        if step.scenario_id in completed:
+            continue
+        _ensure_inputs(state, step.scenario_id, completed)
+        if step.scenario_id in completed:
+            continue
         _run_step(state, step, completed)
     state.observations["completed_steps"] = completed
-    state.plan = [f"{'ok' if s.scenario_id in completed else 'fail'}:{s.scenario_id}" for s in steps]
+    # Порядок в plan — фактический порядок выполнения, включая шаги,
+    # которые система добавила сама: иначе в выводе докинг стоял бы после
+    # проверки позы, ради которой он и был запущен.
+    planned = [s.scenario_id for s in steps]
+    state.plan = [f"ok:{sid}" for sid in completed]
+    state.plan += [f"fail:{sid}" for sid in planned if sid not in completed]
     return state
 
 

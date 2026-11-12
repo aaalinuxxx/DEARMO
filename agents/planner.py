@@ -9,23 +9,38 @@ from orchestration.scenarios import SCENARIO_IDS, SCENARIO_TARGET_FOR_LIGAND, cl
 from orchestration.state import WorkflowState
 from orchestration.task_graph import order_scenarios
 from tools.pubchem_client import resolve_compound
+from tools.translit import looks_russian, resolve_russian_name
 
 _PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "planner.txt"
 
 _PDB_RE = re.compile(r"\b([0-9][A-Za-z0-9]{3})\b")
 
-_KNOWN_LIGANDS: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("ацетазоламид", "acetazolamide"), "acetazolamide"),
-    (("метазоламид", "methazolamide"), "methazolamide"),
-    (("этоксзоламид", "ethoxzolamide"), "ethoxzolamide"),
-    (("дорзоламид", "dorzolamide"), "dorzolamide"),
-    (("бринзоламид", "brinzolamide"), "brinzolamide"),
-    (("бензамидин", "benzamidine"), "benzamidine"),
-    (("аспирин", "aspirin"), "aspirin"),
-)
-
 _AMBIGUOUS_LIGAND_TERMS = ("сульфонамид", "sulfonamide", "любой ингибитор", "неизвестный лиганд")
-_AMBIGUOUS_TARGET_TERMS = ("любая карбоангидраза", "какой-нибудь белок", "неизвестная мишень")
+_AMBIGUOUS_TARGET_TERMS = ("какой-нибудь белок", "неизвестная мишень", "любой белок")
+
+# Латинское слово или SMILES в кавычках — всё, что резервный разбор может узнать о молекуле
+# без словаря. Нормализацию русских и торговых названий делает LLM-планировщик.
+_QUOTED_RE = re.compile(r"[«\"\']([^«»\"\']{2,60})[»\"\']")
+_LATIN_TOKEN_RE = re.compile(r"\b([A-Za-z][A-Za-z0-9\-]{3,40})\b")
+_SMILES_RE = re.compile(r"\b([A-Za-z0-9@+\-\[\]()=#\\/%]{6,120})\b")
+_STOPWORDS = {
+    "pdb", "smiles", "vina", "docking", "protein", "ligand", "chembl", "bindingdb",
+    "pubchem", "rdkit", "csv", "json", "posebusters", "qed", "logp", "tpsa",
+}
+
+_RUSSIAN_TOKEN_RE = re.compile(r"\b([а-яё]{6,40})\b", re.I)
+# Частые слова запроса, которые заведомо не являются названием вещества.
+# Список лингвистический, а не химический: он не содержит ни одной молекулы.
+_RU_STOPWORDS = {
+    "подбери", "выполни", "проверь", "сравни", "структуру", "структура", "структуре",
+    "правдоподобность", "обоснуй", "предложи", "покажи", "рассчитай", "посчитай",
+    "докинга", "докинг", "докинге", "белок", "белка", "мишень", "мишени", "лиганд",
+    "лиганда", "лиганды", "лигандов", "карман", "кармане", "карманах", "карманов",
+    "молекулы", "молекула", "молекулу", "соединения", "соединение", "соединений",
+    "свойства", "свойств", "активность", "активности", "экспериментальными",
+    "данными", "литературу", "аналоги", "аналогов", "порядок", "оценке", "оценка",
+    "позы", "позу", "поза", "лучшей", "таблице", "таблицу", "результаты",
+}
 
 _UNSUPPORTED_CLAIM_KEYWORDS = (
     "клиническ",
@@ -45,17 +60,47 @@ def _load_system_prompt() -> str:
     return "Ты планировщик drug discovery. Извлеки сценарий и сущности из запроса."
 
 
+def _ligands_without_dictionary(text: str) -> list[str]:
+    """Достать молекулу из текста без списка известных соединений.
+
+    Берём то, что в кавычках, иначе — латинские токены, не являющиеся служебными
+    словами. Русские названия здесь намеренно не распознаются: их переводит LLM,
+    а резервный режим честно попросит уточнить.
+    """
+    found: list[str] = []
+    for match in _QUOTED_RE.finditer(text):
+        token = match.group(1).strip()
+        if token and token.lower() not in _STOPWORDS:
+            found.append(token)
+    if found:
+        return found[:3]
+    for match in _LATIN_TOKEN_RE.finditer(text):
+        token = match.group(1)
+        if token.lower() in _STOPWORDS or _PDB_RE.fullmatch(token):
+            continue
+        found.append(token)
+    if found:
+        return found[:3]
+
+    # Латиницы нет: пробуем русские слова через транслитерацию. Название считается
+    # распознанным, только если PubChem точно нашёл по нему соединение, поэтому
+    # случайное слово из запроса молекулой не станет.
+    for token in _RUSSIAN_TOKEN_RE.findall(text):
+        if len(token) < 6 or token.lower() in _RU_STOPWORDS:
+            continue
+        info = resolve_russian_name(token, resolve_compound)
+        if info:
+            return [info.get("title") or info["translit_variant"]]
+    return []
+
+
 def _keyword_extraction(text: str) -> PlannerExtraction:
     ids = classify_all_keywords(text)
     lower = text.lower()
     if not ids and any(k in lower for k in ("аналог", "похож", "активност", "свойств")):
         ids = [SCENARIO_TARGET_FOR_LIGAND]
     scenario_id = ids[0] if ids else None
-    ligands: list[str] = []
-
-    for aliases, canonical in _KNOWN_LIGANDS:
-        if any(a in lower for a in aliases):
-            ligands.append(canonical)
+    ligands = _ligands_without_dictionary(text)
 
     if not ligands:
         for amb in _AMBIGUOUS_LIGAND_TERMS:
@@ -69,7 +114,8 @@ def _keyword_extraction(text: str) -> PlannerExtraction:
     return PlannerExtraction(
         scenario_id=scenario_id,
         ligands=ligands,
-        target_hint="carbonic anhydrase" if any(x in lower for x in ("ацетазоламид", "acetazolamide", "карбоангидраз")) else None,
+        smiles=None,
+        target_hint=None,
         pdb_id=pdb_id,
         poses_csv_path=None,
         pose_file=None,
@@ -87,7 +133,7 @@ def _check_ambiguity_and_unsupported_claims(state: WorkflowState) -> None:
         for term in _AMBIGUOUS_TARGET_TERMS:
             if term in lower:
                 state.add_error(
-                    f"Уточните мишень: формулировка '{term}' неоднозначна (укажите конкретную изоформу, например CA II / CHEMBL205, или PDB ID)."
+                    f"Уточните мишень: формулировка '{term}' неоднозначна. Назовите белок, его ChEMBL ID или PDB ID."
                 )
 
     # Проверяем, не задал ли пользователь уже конкретную (не неоднозначную) молекулу
@@ -155,6 +201,9 @@ def _apply_extraction(state: WorkflowState, ext: PlannerExtraction) -> WorkflowS
     elif ext.ligand_id:
         state.observations["ligand_id"] = ext.ligand_id
 
+    if ext.smiles and not state.observations.get("smiles"):
+        state.observations["smiles"] = ext.smiles
+        state.observations["smiles_source"] = ext.source
     if ext.target_hint:
         state.observations["target_hint"] = ext.target_hint
     if ext.pdb_id and not state.request.pdb_id:

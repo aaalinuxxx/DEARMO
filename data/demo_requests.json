@@ -1,26 +1,30 @@
 {
-  "description": "Демо-запросы для защиты кейса СИНТЕЗ №1",
-  "status": "finalized",
+  "description": "Демо-запросы кейса СИНТЕЗ №1. Файл генерируется командой `python cli.py demo`.",
+  "generated_at": "2026-11-12T15:26:24Z",
   "scenarios": [
     {
       "id": "target_for_ligand",
-      "request": "Подбери белок для докинга ацетазоламида. Обоснуй выбор экспериментальными данными и предложи структуру из PDB.",
-      "expected": "CA II, BindingDB Ki, PDB 3HS4, RAG-контекст, поля kind=database/calculation"
+      "request": "Подбери белок для докинга иматиниба. Обоснуй выбор экспериментальными данными и предложи структуру из PDB.",
+      "expected": "CID и структура из PubChem, дескрипторы RDKit (calculation), измерения BindingDB по этому соединению (database), выбранная мишень и PDB с обоснованием модели (hypothesis).",
+      "actual_status": "success"
     },
     {
       "id": "dock_pockets",
-      "request": "Выполни докинг ацетазоламида в структуру 3HS4 (два верхних кармана P2Rank).",
-      "expected": "report.md, poses.csv из кеша, лучший vina_score с подписью calculation"
+      "request": "Выполни докинг эрлотиниба в структуру 1M17.",
+      "expected": "Оценка Vina в ккал/моль, посчитанная в этом запуске (calculation), файл позы, poses.csv и report.md в outputs/.",
+      "actual_status": "success"
     },
     {
       "id": "compare_docking",
-      "request": "Сравни три лиганда в двух карманах. Покажи, меняется ли их порядок по оценке Vina при смене кармана.",
-      "expected": "heatmap PNG, best_vina_*, ligand_ranking_by_pocket=order_changes"
+      "request": "Сравни лиганды по карманам для эрлотиниба в 1M17 и покажи, меняется ли их порядок по оценке Vina.",
+      "expected": "Таблица poses.csv, тепловая карта PNG и признак смены порядка. Масса и logP от кармана не зависят.",
+      "actual_status": "success"
     },
     {
       "id": "validate_pose",
-      "request": "Проверь правдоподобность лучшей позы ацетазоламида в 3HS4.",
-      "expected": "checks_passed_percent, список геометрических проверок"
+      "request": "Проверь правдоподобность позы эрлотиниба в 1M17.",
+      "expected": "Доля пройденных геометрических проверок и их список. Поза берётся только из расчёта этого же запроса.",
+      "actual_status": "success"
     }
   ]
 }

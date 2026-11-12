@@ -26,6 +26,11 @@ class ScenarioSpec:
     description: str
     required_observation_keys: tuple[str, ...]
     demo_request: str | None = None
+    # Что система должна показать. Это формулировка «ожидаемого ответа» из кейса;
+    # фактический результат пишет `cli.py demo` в docs/scenarios.md.
+    expected: str | None = None
+    # Чем сценарий интересен на защите.
+    shows: str | None = None
 
 
 SCENARIOS: dict[ScenarioId, ScenarioSpec] = {
@@ -35,35 +40,72 @@ SCENARIOS: dict[ScenarioId, ScenarioSpec] = {
         description="Подбор белка и PDB по лиганду с опорой на BindingDB и литературу.",
         required_observation_keys=("ligand_query",),
         demo_request=(
-            "Подбери белок для докинга ацетазоламида. "
+            "Подбери белок для докинга иматиниба. "
             "Обоснуй выбор экспериментальными данными и предложи структуру из PDB."
         ),
+        expected=(
+            "CID и структура из PubChem, дескрипторы RDKit (calculation), измерения "
+            "BindingDB по этому соединению (database), выбранная мишень и PDB с "
+            "обоснованием модели (hypothesis)."
+        ),
+        shows="Живые источники и решение LLM, подкреплённое данными, а не памятью модели.",
     ),
     SCENARIO_DOCK_POCKETS: ScenarioSpec(
         id=SCENARIO_DOCK_POCKETS,
         title="Поиск карманов и докинг",
-        description="P2Rank + Vina; на демо — загрузка сохранённого прогона.",
+        description="Подготовка рецептора и лиганда, AutoDock Vina, отчёт по карманам.",
         required_observation_keys=("pdb_id", "ligand_id"),
-        demo_request="Выполни докинг ацетазоламида в структуру 3HS4 (два верхних кармана P2Rank).",
+        demo_request="Выполни докинг эрлотиниба в структуру 1M17.",
+        expected=(
+            "Оценка Vina в ккал/моль, посчитанная в этом запуске (calculation), файл позы, "
+            "poses.csv и report.md в outputs/."
+        ),
+        shows="Реальный расчёт на сцене за секунды для пары, которой нет в репозитории.",
     ),
     SCENARIO_COMPARE_DOCKING: ScenarioSpec(
         id=SCENARIO_COMPARE_DOCKING,
         title="Анализ результатов докинга",
-        description="Сравнение лигандов по карманам на таблице poses.csv.",
-        required_observation_keys=(),
+        description="Сравнение лигандов и карманов на таблице poses.csv.",
+        required_observation_keys=("poses_csv_path",),
         demo_request=(
-            "Сравни три лиганда в двух карманах. Покажи, меняется ли их порядок "
-            "по оценке Vina при смене кармана."
+            "Сравни лиганды по карманам для эрлотиниба в 1M17 и покажи, "
+            "меняется ли их порядок по оценке Vina."
         ),
+        expected=(
+            "Таблица poses.csv, тепловая карта PNG и признак смены порядка. "
+            "Масса и logP от кармана не зависят."
+        ),
+        shows="Разрешение зависимостей: таблицы поз нет, система сама добавляет докинг.",
     ),
     SCENARIO_VALIDATE_POSE: ScenarioSpec(
         id=SCENARIO_VALIDATE_POSE,
         title="Проверка правдоподобности позы",
         description="Геометрические проверки и RMSD к кристаллу при наличии.",
         required_observation_keys=("pdb_id", "ligand_id", "pose_file"),
-        demo_request="Проверь правдоподобность лучшей позы ацетазоламида в 3HS4.",
+        demo_request="Проверь правдоподобность позы эрлотиниба в 1M17.",
+        expected=(
+            "Доля пройденных геометрических проверок и их список. Поза берётся только "
+            "из расчёта этого же запроса."
+        ),
+        shows="Цепочка из трёх агентов по запросу об одном шаге; чужая поза не подставляется.",
     ),
 }
+
+# Какой сценарий производит недостающий вход. Благодаря этой карте запрос
+# «проверь позу X» не падает с «укажите pose_file», а сам достраивается докингом.
+# None означает, что значение может прийти только от пользователя.
+OBSERVATION_PRODUCERS: dict[str, ScenarioId | None] = {
+    "pdb_id": SCENARIO_TARGET_FOR_LIGAND,
+    "pose_file": SCENARIO_DOCK_POCKETS,
+    "poses_csv_path": SCENARIO_DOCK_POCKETS,
+    "ligand_query": None,
+    "ligand_id": None,
+}
+
+
+def producer_for(key: str) -> ScenarioId | None:
+    return OBSERVATION_PRODUCERS.get(key)
+
 
 # Ключевые слова для резервной маршрутизации без LLM (порядок важен при пересечениях).
 _KEYWORD_RULES: list[tuple[tuple[str, ...], ScenarioId]] = [
