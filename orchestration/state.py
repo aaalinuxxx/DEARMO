@@ -31,8 +31,31 @@ class WorkflowState:
     explanation: str | None = None
     planner_source: str | None = None
     work_queue: list[WorkItem] = field(default_factory=list)
+    _evidence_keys: set = field(default_factory=set, repr=False)
 
     def add_evidence(self, evidence: Evidence) -> None:
+        """Добавить факт, не повторяя уже собранный.
+
+        Сценарии переиспользуют одни и те же инструменты (например, pdb_select
+        нужен и для докинга, и для проверки позы), поэтому один и тот же замер
+        иначе попадал бы в таблицу по нескольку раз. Различающие поля контекста
+        входят в ключ, чтобы два разных измерения с одинаковым числом сохранились.
+        """
+        context = evidence.context or {}
+        key = (
+            evidence.kind,
+            evidence.method,
+            str(evidence.value),
+            evidence.unit,
+            evidence.source,
+            tuple(
+                str(context.get(field))
+                for field in ("target_name", "organism", "pocket_id", "ligand_id", "pdb_id", "pose_id")
+            ),
+        )
+        if key in self._evidence_keys:
+            return
+        self._evidence_keys.add(key)
         self.evidence.append(evidence)
 
     def add_error(self, message: str) -> None:

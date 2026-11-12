@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 # TODO (IT 2): согласовать состояния частичного успеха и формат ошибок API.
-ResultStatus = Literal["success", "error", "no_data", "needs_clarification"]
+ResultStatus = Literal["success", "partial", "error", "no_data", "needs_clarification"]
 EvidenceKind = Literal["database", "calculation", "prediction", "hypothesis"]
 
 @dataclass
