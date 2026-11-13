@@ -130,6 +130,7 @@ def _activities_from_payload(payload: Any) -> list[dict[str, Any]]:
             relation, value = _parse_affinity(row.get("bdb.affinity") or row.get("affinity"))
             if value is None:
                 continue
+            monomer_id = row.get("bdb.monomerid") or row.get("monomerid")
             activities.append(
                 {
                     "target_name": row.get("bdb.target") or row.get("target"),
@@ -138,11 +139,27 @@ def _activities_from_payload(payload: Any) -> list[dict[str, Any]]:
                     "value": value,
                     "relation": relation,
                     "units": "nM",
-                    "monomer_id": row.get("bdb.monomerid") or row.get("monomerid"),
+                    "monomer_id": monomer_id,
+                    "link": record_url(monomer_id),
                     "pdb_id": row.get("pdb_id"),
                 }
             )
     return activities
+
+
+def record_url(monomer_id: Any) -> str | None:
+    """Ссылка на саму запись BindingDB.
+
+    REST-ответ не содержит ни PMID, ни ссылки, поэтому единственный способ дать
+    пользователю проверяемый источник измерения — собрать адрес записи по её
+    идентификатору. Статья приходит отдельно, из цитирования структуры PDB.
+    """
+    if monomer_id in (None, "", 0):
+        return None
+    return (
+        "https://www.bindingdb.org/rwd/bind/chemsearch/marvin/"
+        f"MolStructure.jsp?monomerid={monomer_id}"
+    )
 
 
 def _looks_like_smiles(text: str) -> bool:
@@ -181,11 +198,29 @@ def _recommend_from_measurements(record: dict[str, Any]) -> dict[str, Any] | Non
         "value": chosen.get("value"),
         "units": chosen.get("units"),
         "measured_target_name": chosen.get("target_name"),
+        "link": chosen.get("link") or record_url(chosen.get("monomer_id")),
         "rationale": (
             "Мишень взята из строки BindingDB этого соединения: сначала человек, "
             "затем Ki или Kd, затем меньшее значение. Идентификатор PDB из другой молекулы не подставляется."
         ),
     }
+
+
+def _ensure_links(record: dict[str, Any]) -> dict[str, Any]:
+    """Достроить ссылки на записи у строк, загруженных до их появления.
+
+    Предзагруженный набор в data/external и ранние файлы кэша писались без поля
+    link, и из-за этого «ссылка на запись» — прямое требование кейса — пропадала
+    именно в демонстрационном прогоне. Идентификатор записи в этих файлах есть,
+    так что адрес восстанавливается без обращения к сети.
+    """
+    for row in record.get("activities") or []:
+        if not row.get("link"):
+            row["link"] = record_url(row.get("monomer_id"))
+    recommended = record.get("recommended_target")
+    if isinstance(recommended, dict) and not recommended.get("link"):
+        recommended["link"] = record_url(recommended.get("monomer_id"))
+    return record
 
 
 def fetch_activities(
@@ -208,16 +243,20 @@ def fetch_activities(
         record["_from_download"] = True
         record["is_cached"] = True
         record["fetched_at"] = fetched_at
-        rec = recommend_target(record)
+        rec = recommend_target(_ensure_links(record))
         if rec:
             record["recommended_target"] = rec
-        return record
+        return _ensure_links(record)
 
     # 2. Локальный кэш в data/cache/bindingdb/
     if use_cache:
         cached = load_cached_activities(key)
         if cached:
-            return cached
+            if not cached.get("recommended_target"):
+                rec = recommend_target(_ensure_links(cached))
+                if rec:
+                    cached["recommended_target"] = rec
+            return _ensure_links(cached)
 
     # 3. BindingDB по SMILES самого соединения, без привязки к заранее выбранной мишени.
     query_smiles = (smiles or "").strip()
@@ -245,7 +284,7 @@ def fetch_activities(
             if rec:
                 record["recommended_target"] = rec
             save_cached_activities(key, record)
-            return record
+            return _ensure_links(record)
 
     return {
         "ligand": ligand_name,

@@ -162,6 +162,30 @@ def _check_ambiguity_and_unsupported_claims(state: WorkflowState) -> None:
         state.observations["unsupported_conclusion_requested"] = True
 
 
+_EMPTY_VALUES = frozenset({"null", "none", "n/a", "na", "nil", "-", "—", ""})
+
+_PLACEHOLDER_LIGANDS = frozenset(
+    {"x", "y", "z", "ligand", "molecule", "compound", "null", "none", "n/a", "unknown", "лиганд", "молекула"}
+)
+
+
+def _is_real_ligand_name(value: object) -> bool:
+    token = str(value or "").strip()
+    return len(token) >= 2 and token.lower() not in _PLACEHOLDER_LIGANDS
+
+
+def _usable_ligand(value: object, text: str) -> bool:
+    """Идентификатор лиганда, который можно принять от модели.
+
+    Односимвольные и общие слова — заглушки из примеров промпта. Остальное
+    принимается, только если слово действительно есть в тексте запроса.
+    """
+    token = str(value or "").strip()
+    if len(token) < 2 or token.lower() in _PLACEHOLDER_LIGANDS:
+        return False
+    return token.lower() in text.lower()
+
+
 def _apply_extraction(state: WorkflowState, ext: PlannerExtraction) -> WorkflowState:
     keyword_ids = classify_all_keywords(state.request.text)
     chosen = []
@@ -186,10 +210,14 @@ def _apply_extraction(state: WorkflowState, ext: PlannerExtraction) -> WorkflowS
     state.request.scenario = state.scenario_id
     state.planner_source = ext.source
 
+    # Заглушки из примеров промпта («X») отсеиваются до любого использования:
+    # через ext.ligands они иначе попадали и в molecules, и в ligand_ids.
+    ext.ligands = [name for name in (ext.ligands or []) if _is_real_ligand_name(name)]
+
     if not state.request.molecules and ext.ligands:
         state.request.molecules = ext.ligands
-    if not state.request.ligand_ids and ext.ligands:
-        state.request.ligand_ids = ext.ligands
+    if not state.request.ligand_ids and state.request.molecules:
+        state.request.ligand_ids = list(state.request.molecules)
 
     if state.request.molecules:
         state.observations["ligand_query"] = state.request.molecules[0]
@@ -198,24 +226,53 @@ def _apply_extraction(state: WorkflowState, ext: PlannerExtraction) -> WorkflowS
 
     if state.request.ligand_ids:
         state.observations["ligand_id"] = state.request.ligand_ids[0]
-    elif ext.ligand_id:
+    elif state.observations.get("ligand_query"):
+        # Молекула уже известна из запроса или из предыдущего шага цепочки. Идентификатор
+        # лиганда строится от неё, а не от извлечения модели: Qwen подставляла сюда
+        # «X» из примера в промпте, и результаты докинга ложились в каталог 3HS4_x.
+        state.observations["ligand_id"] = state.observations["ligand_query"]
+    elif _usable_ligand(ext.ligand_id, state.request.text):
         state.observations["ligand_id"] = ext.ligand_id
+    elif ext.ligand_id:
+        state.limitations.append(
+            f"Идентификатор лиганда «{ext.ligand_id}», извлечённый моделью, отброшен: "
+            "он выглядит как заглушка и не встречается в запросе."
+        )
 
     if ext.smiles and not state.observations.get("smiles"):
         state.observations["smiles"] = ext.smiles
         state.observations["smiles_source"] = ext.source
     if ext.target_hint:
+        # Извлечение модели, а не слова пользователя: источник сохраняется, чтобы
+        # target_agent мог сверить подсказку с измерениями и отбросить выдуманную.
         state.observations["target_hint"] = ext.target_hint
+        state.observations["target_hint_source"] = ext.source
     if ext.pdb_id and not state.request.pdb_id:
         state.request.pdb_id = ext.pdb_id
     if state.request.pdb_id:
         state.observations["pdb_id"] = state.request.pdb_id
-    if ext.poses_csv_path:
-        state.request.poses_csv_path = ext.poses_csv_path
-        state.observations["poses_csv_path"] = ext.poses_csv_path
-    if ext.pose_file:
-        state.request.pose_file = ext.pose_file
-        state.observations["pose_file"] = ext.pose_file
+    # Пути от модели принимаются только если файл существует и пользователь не
+    # задал свой. Иначе Qwen перезаписывала верный путь таблицы поз заглушкой
+    # «path/to/universal_properties.csv», и сценарий сравнения поз оставался без данных.
+    for field, attr in (("poses_csv_path", "poses_csv_path"), ("pose_file", "pose_file")):
+        # Путь пользователя или предыдущего шага цепочки попадает в observations всегда,
+        # а не только когда модель что-то предложила. Иначе исполнитель не видел готовую
+        # таблицу поз, считал её отсутствующей и без нужды запускал докинг второй раз.
+        existing = getattr(state.request, attr) or state.observations.get(field)
+        if existing:
+            state.observations.setdefault(field, str(existing))
+            continue
+        proposed = getattr(ext, field)
+        # Qwen возвращает пустое значение строкой «null»: это «не указано», а не путь.
+        if not proposed or str(proposed).strip().lower() in _EMPTY_VALUES:
+            continue
+        if Path(str(proposed)).expanduser().is_file():
+            setattr(state.request, attr, str(proposed))
+            state.observations[field] = str(proposed)
+        else:
+            state.limitations.append(
+                f"Путь «{proposed}», извлечённый моделью ({field}), отброшен: такого файла нет."
+            )
 
     _check_ambiguity_and_unsupported_claims(state)
     state.plan = [f"{i + 1}:{sid}" for i, sid in enumerate(chosen)] + [f"planner={ext.source}"]

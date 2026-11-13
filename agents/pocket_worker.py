@@ -51,11 +51,11 @@ def run_pocket(
     if best.p2rank_score is not None:
         item.evidence.append(
             Evidence(
-                kind="calculation",
+                kind="prediction",
                 value=best.p2rank_score,
                 method=f"p2rank_score_{pocket_id}",
                 source="P2Rank",
-                context={"pocket_id": pocket_id},
+                context={"pocket_id": pocket_id, "note": "Предсказание модели машинного обучения P2Rank."},
             )
         )
     chunks = retrieve(query_terms, min_score=_min_score(), limit=2)

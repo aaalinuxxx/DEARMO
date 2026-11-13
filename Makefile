@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PY ?= .venv/bin/python
 
-.PHONY: help venv install test test-fast demo demo-offline fetch-data lint clean check
+.PHONY: help venv install test test-fast demo demo-offline fetch-data lint clean check redock scenario1 scenario2
 
 help: ## Показать список команд
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -25,6 +25,15 @@ demo: ## Прогнать сценарии и обновить docs/scenarios.md
 
 demo-offline: ## Прогнать сценарии без LLM, не трогая документацию
 	DEARMO_LLM_PROVIDER=keyword $(PY) cli.py demo --no-docs
+
+scenario1: ## Сценарий 1: мишень для ацетазоламида (нужна сеть и Ollama)
+	DEARMO_LLM_PROVIDER=ollama $(PY) cli.py ask "Подбери белок-мишень для ацетазоламида и обоснуй выбор экспериментальными данными."
+
+scenario2: ## Сценарий 2: P2Rank + докинг в топ-3 кармана для эрлотиниба в 1M17
+	DEARMO_LLM_PROVIDER=keyword $(PY) cli.py ask "Найди три наиболее перспективных кармана, проведи докинг эрлотиниба в 1M17 в каждом и покажи лучшую позу по Vina."
+
+redock: ## Редокинг-бенчмарк: доля поз №1 в пределах 2 Å от кристалла, пишет docs/redocking.md
+	$(PY) -m tools.redock_benchmark
 
 fetch-data: ## Скачать опорный набор данных в data/external/
 	$(PY) cli.py fetch-data

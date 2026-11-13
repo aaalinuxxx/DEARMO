@@ -3,7 +3,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agents import analysis_agent, chemistry_agent, data_agent, structure_agent, validation_agent
+from agents import (
+    analysis_agent,
+    chemistry_agent,
+    data_agent,
+    pose_comparison_agent,
+    structure_agent,
+    target_agent,
+    validation_agent,
+)
 from orchestration.llm_client import ask_json, ollama_model
 from orchestration.orc import run_dock_pipeline
 from orchestration.state import WorkflowState
@@ -13,21 +21,30 @@ _PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "tool_router
 _ORDER = (
     "rdkit_ligand",
     "activity_sources",
+    "target_select",
+    "activity_report",
     "pdb_select",
     "literature",
     "dock_pipeline",
     "pocket_compare",
+    "pose_compare",
     "pose_descriptors",
     "pose_checks",
 )
 
 _PURPOSE = {
     "rdkit_ligand": "PubChem и расчётные дескрипторы RDKit лиганда",
-    "activity_sources": "BindingDB по соединению, затем ChEMBL по мишени или по молекуле; аналоги, если их просят",
-    "pdb_select": "Выбор PDB: указанный код, рекомендация по измерениям или поиск RCSB",
+    "activity_sources": "Загрузка измерений BindingDB по самому соединению, без выбора мишени",
+    "target_select": "Выбор мишени из загруженных измерений и её accession в UniProt",
+    "activity_report": "Измерения выбранной мишени, дополнение из ChEMBL, аналоги по запросу",
+    "pdb_select": "Поиск структуры по accession UniProt (уровни A-D) и состав комплекса",
     "literature": "Локальные выдержки литературы по лиганду и мишени",
     "dock_pipeline": "Подготовка рецептора и лиганда, AutoDock Vina, отчёт по карманам",
     "pocket_compare": "Сравнение оценок Vina по карманам и тепловая карта",
+    "pose_compare": (
+        "Сравнение поз между собой: разница оценок Vina с позой №1, контакты с белком "
+        "по каждой позе, карта «поза × остаток» и расстояния до ключевых остатков"
+    ),
     "pose_descriptors": "Дескрипторы RDKit для лигандов из таблицы поз",
     "pose_checks": "Геометрические проверки позы",
 }
@@ -57,15 +74,25 @@ def heuristic_tools(state: WorkflowState, scenario: str | None = None) -> list[s
     if scenario == "target_for_ligand" and property_only(text):
         tools = ["rdkit_ligand"]
     elif scenario == "target_for_ligand":
-        tools = ["rdkit_ligand", "activity_sources", "pdb_select", "literature"]
+        tools = [
+            "rdkit_ligand",
+            "activity_sources",
+            "target_select",
+            "activity_report",
+            "pdb_select",
+            "literature",
+        ]
     elif scenario == "dock_pockets":
         tools = ["dock_pipeline"]
     elif scenario == "compare_docking":
-        tools = ["pocket_compare", "pose_descriptors"]
+        # pose_compare отвечает на сам вопрос сценария 3 — чем позы отличаются
+        # друг от друга. pocket_compare остаётся рядом: он сравнивает карманы и
+        # нужен, когда в таблице несколько лигандов.
+        tools = ["pocket_compare", "pose_compare", "pose_descriptors"]
     elif scenario == "validate_pose":
         tools = ["pdb_select", "pose_checks"]
     else:
-        tools = ["rdkit_ligand", "activity_sources"]
+        tools = ["rdkit_ligand", "activity_sources", "target_select", "activity_report"]
     if any(word in text for word in _SKIP_LITERATURE):
         tools = [name for name in tools if name != "literature"]
     return tools
@@ -77,7 +104,7 @@ def required_tools(state: WorkflowState, scenario: str | None = None) -> list[st
     if scenario == "target_for_ligand" and property_only(state.request.text):
         return ["rdkit_ligand"]
     if scenario == "target_for_ligand":
-        required = ["rdkit_ligand", "activity_sources", "pdb_select"]
+        required = ["rdkit_ligand", "activity_sources", "target_select", "activity_report", "pdb_select"]
         if any(word in state.request.text.lower() for word in _SKIP_LITERATURE):
             return required
         return required
@@ -158,6 +185,10 @@ def _run_tool(state: WorkflowState, name: str) -> None:
         chemistry_agent.resolve_ligand(state)
     elif name == "activity_sources":
         data_agent.collect_target_data(state)
+    elif name == "target_select":
+        target_agent.select_target(state)
+    elif name == "activity_report":
+        data_agent.report_activities(state)
     elif name == "pdb_select":
         structure_agent.select_structure(state)
     elif name == "literature":
@@ -174,6 +205,16 @@ def _run_tool(state: WorkflowState, name: str) -> None:
         state.observations["poses_csv_path"] = str(csv_path)
         state.artifacts["poses_csv"] = str(csv_path)
         analysis_agent.compare_pockets(state, csv_path)
+    elif name == "pose_compare":
+        csv_path = _poses_csv(state)
+        if csv_path is None:
+            state.add_error(
+                "Нет таблицы поз для сравнения. Укажите путь к poses.csv или сначала выполните докинг."
+            )
+            return
+        state.observations["poses_csv_path"] = str(csv_path)
+        state.artifacts["poses_csv"] = str(csv_path)
+        pose_comparison_agent.compare_poses(state, csv_path)
     elif name == "pose_descriptors":
         csv_path = _poses_csv(state)
         if csv_path is not None:

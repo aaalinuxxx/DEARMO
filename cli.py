@@ -166,6 +166,37 @@ def _run_compare(molecules: list[str], target_id: str, export_dir: str | None) -
     return 0
 
 
+def _rel(value):
+    """Путь относительно репозитория: в документации не должно быть домашних каталогов."""
+    if isinstance(value, (list, tuple)):
+        return [_rel(item) for item in value]
+    text = str(value)
+    root = str(Path(__file__).resolve().parent) + "/"
+    return text[len(root):] if text.startswith(root) else text
+
+
+def _carry_context(previous: dict, state: WorkflowState) -> dict:
+    """Что следующий сценарий цепочки получает от предыдущего.
+
+    Передаются только факты, которые предыдущий шаг действительно установил:
+    молекула, структура, таблица поз и поза №1. Ничего не выдумывается.
+    """
+    obs = state.observations
+    carried = dict(previous)
+    ligand = obs.get("ligand_query")
+    if ligand and not carried.get("molecules"):
+        carried["molecules"] = [str(ligand)]
+    if obs.get("pdb_id"):
+        carried["pdb_id"] = str(obs["pdb_id"])
+    poses = obs.get("poses_csv_path") or state.artifacts.get("poses_csv")
+    if poses:
+        carried["poses_csv_path"] = str(poses)
+    pose = obs.get("best_pose") or state.artifacts.get("pose_pdbqt")
+    if pose:
+        carried["pose_file"] = str(pose)
+    return carried
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="dearmo", description="DEARMO — мультиагентная система из терминала")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -201,14 +232,23 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "demo":
         runs = []
+        # Сценарии кейса — одна цепочка на одной молекуле: мишень -> докинг -> сравнение
+        # поз -> проверка позы. Поэтому результат шага передаётся следующему, как это
+        # делал бы пользователь в одном диалоге. Передача видна в выводе и в отчёте.
+        carried: dict = {}
         for sid, spec in SCENARIOS.items():
             if not spec.demo_request:
                 continue
             print(f"\n=== Сценарий: {sid} ({spec.title}) ===")
-            res, st = run_workflow(ResearchRequest(text=spec.demo_request))
+            if carried:
+                print("контекст из предыдущего шага: " + ", ".join(f"{k}={_rel(v)}" for k, v in carried.items()))
+            res, st = run_workflow(ResearchRequest(text=spec.demo_request, **carried))
             export_run_bundle(res, st, export_dir=args.export_dir, prefix=f"demo_{sid}")
             _print_result_objects(res, st)
-            runs.append(scenario_report.collect(sid, res, st))
+            run = scenario_report.collect(sid, res, st)
+            run["carried_context"] = {k: _rel(v) for k, v in carried.items()}
+            runs.append(run)
+            carried = _carry_context(carried, st)
         if runs and not args.no_docs:
             # Описание сценариев пишется из фактического прогона, а не правится руками.
             print("\nОбновлены файлы описания сценариев:")

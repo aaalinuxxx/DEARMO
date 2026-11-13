@@ -295,6 +295,33 @@ _GLOSSARY = """
 """
 
 
+def _narration_rules(evidence_summary: str) -> str:
+    """Порядок изложения строится по тем фактам, что действительно есть.
+
+    Жёсткая фраза «назови accession UniProt и структуру PDB» заставляла модель
+    выдумывать их там, где фактов о мишени нет (сценарии докинга, сравнения поз,
+    проверки геометрии): Qwen писала несуществующие коды вроде Q9H261. Запрос на
+    несуществующее — это провокация к выдумке, а не подсказка.
+    """
+    has = lambda marker: marker in evidence_summary  # noqa: E731
+    rules: list[str] = []
+    if has("geometry_verdict"):
+        rules.append("Начни с вердикта по позе и числа пройденных проверок.")
+    if has("uniprot_accession") or has("target_choice_rationale"):
+        rules.append(
+            "Сначала ответ на вопрос: мишень, её accession UniProt, структура PDB, цепь, "
+            "разрешение, значимые ионы и кофакторы, измеренная константа связывания. "
+            "Свойства молекулы упомяни в конце."
+        )
+    if has("vina_score") and not has("uniprot_accession"):
+        rules.append("Начни с оценки Vina и контроля редокинга, если они есть среди фактов.")
+    if not has("uniprot_accession"):
+        rules.append("Идентификаторов UniProt среди фактов нет: не называй никаких и не пиши про accession.")
+    if not has("pdb_structure"):
+        rules.append("Структуры PDB среди фактов нет: не называй никаких кодов PDB.")
+    return "\n".join(rules)
+
+
 def narrate_with_llm(evidence_summary: str, limitations: list[str]) -> str | None:
     mode = provider()
     if mode == "keyword":
@@ -303,7 +330,13 @@ def narrate_with_llm(evidence_summary: str, limitations: list[str]) -> str | Non
         return None
     text = chat_completion(
         "Сформируй краткое объяснение на русском по фактам (3-5 предложений).\n"
-        "Не добавляй чисел, ссылок и утверждений, которых нет в фактах.\n"
+        "Не добавляй чисел, ссылок, идентификаторов и утверждений, которых нет в блоке «Факты». "
+        "Числа бери только оттуда: из блока «Ограничения» числа и коды не переноси.\n"
+        f"{_narration_rules(evidence_summary)}\n"
+        "Названия белков и идентификаторы переписывай ровно так, как они стоят в "
+        "фактах, латиницей: «Carbonic anhydrase 3», а не «карбонильная андроза».\n"
+        "Служебные слова вроде structure_search_tier в текст не переноси: "
+        "вместо них передай их смысл обычными словами.\n"
         "Используй принятые русские термины и не переводи их заново:\n"
         f"{_GLOSSARY}\n"
         "Если термина нет в списке, оставь английское название как есть.",

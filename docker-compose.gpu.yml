@@ -1,0 +1,14 @@
+# Ускорение Qwen на видеокарте NVIDIA (нужен NVIDIA Container Toolkit на хосте).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build \
+#       --abort-on-container-exit --exit-code-from dearmo
+
+services:
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

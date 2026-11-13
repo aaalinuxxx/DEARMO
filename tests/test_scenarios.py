@@ -89,7 +89,9 @@ def test_problem_case_3_missing_activity_data_preserved_as_none():
         patch("agents.data_agent.fetch_bindingdb_activities", return_value={"activities": []}),
         patch("agents.data_agent.fetch_chembl_activities", return_value=[]),
     ):
+        # Сбор и отчёт — разные шаги: отсутствие данных фиксируется на втором.
         state = data_agent.collect_target_data(state)
+        state = data_agent.report_activities(state)
 
     assert state.observations.get("activity_data_missing") is True
     assert any("не найдены" in lim.lower() and "без подмены на 0" in lim.lower() for lim in state.limitations)

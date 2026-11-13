@@ -10,6 +10,7 @@ import os
 import re
 from pathlib import Path
 
+from models.docking import best_pose_overall
 from models.result import Evidence
 from orchestration.state import WorkflowState
 from tools.docking_io import load_run_directory, poses_from_dir, read_report_summary
@@ -90,6 +91,104 @@ def _record_score(
     )
 
 
+def _first_comp_id(state: WorkflowState) -> str | None:
+    """Код кристаллического лиганда, если сценарий 1 его нашёл.
+
+    Нужен только для контрольных метрик после расчёта. На сам докинг не влияет:
+    карманы ищутся по структуре, из которой лиганд вырезан.
+    """
+    # Код, подтверждённый составом именно этой структуры, надёжнее общего списка
+    # компонентов, которые RCSB сопоставила молекуле.
+    confirmed = state.observations.get("crystal_comp_id")
+    if confirmed:
+        return str(confirmed)
+    comp_ids = state.observations.get("ligand_comp_ids")
+    if isinstance(comp_ids, (list, tuple)) and comp_ids:
+        return str(comp_ids[0])
+    if isinstance(comp_ids, str) and comp_ids.strip():
+        return comp_ids.strip()
+    return None
+
+
+def _record_pockets(state: WorkflowState, result) -> None:
+    """Карманы-кандидаты: ранг, балл и центр каждого."""
+    for pocket in result.pockets:
+        state.add_evidence(
+            Evidence(
+                # Балл P2Rank — выход обученной модели машинного обучения, то есть
+                # предсказание, а не расчёт по формуле. Кейс требует их различать.
+                kind="prediction",
+                value=pocket.p2rank_score,
+                method="p2rank_pocket",
+                source="P2Rank",
+                context={
+                    "note": "Предсказание модели машинного обучения P2Rank; не измерение.",
+                    "pocket_id": pocket.pocket_id,
+                    "rank": pocket.rank,
+                    "center": [round(c, 3) for c in pocket.center],
+                    "surf_atom_count": pocket.surf_atom_count,
+                    "residue_ids": list(pocket.residue_ids[:12]),
+                },
+            )
+        )
+
+
+def _record_control(state: WorkflowState, result) -> None:
+    """Контрольные метрики защиты, только если эталон действительно был."""
+    control = result.control or {}
+    if not control.get("available"):
+        return
+    if control.get("pocket_hit_rank") is not None:
+        state.add_evidence(
+            Evidence(
+                kind="calculation",
+                value=control["pocket_hit_rank"],
+                method="pocket_hit_rank",
+                source="P2Rank",
+                context={
+                    "distance_a": round(float(control["pocket_hit_distance_a"]), 3),
+                    "radius_a": control["pocket_hit_radius_a"],
+                    "crystal_comp_id": control.get("crystal_comp_id"),
+                    "note": "Ранг первого кармана, центр которого попал в окрестность кристаллического лиганда.",
+                },
+            )
+        )
+    rmsd = control.get("best_pose_rmsd_to_crystal_a")
+    if rmsd is not None:
+        state.add_evidence(
+            Evidence(
+                kind="calculation",
+                value=round(float(rmsd), 3),
+                unit="Å",
+                method="rmsd_to_crystal",
+                source="DEARMO rmsd",
+                context={
+                    "pose_file": result.best.pose_file,
+                    "crystal_comp_id": control.get("crystal_comp_id"),
+                    "threshold_a": control.get("rmsd_threshold_a"),
+                    "note": "RMSD позы №1 до кристаллической по тяжёлым атомам, с учётом симметрии, без выравнивания.",
+                },
+            )
+        )
+        # Голое число RMSD вердикта не даёт. Провал контроля должен быть сказан
+        # словами: иначе ответ «success» с позой №1 выглядит как надёжный результат.
+        threshold = float(control.get("rmsd_threshold_a") or 2.0)
+        code = control.get("crystal_comp_id")
+        if float(rmsd) > threshold:
+            state.limitations.append(
+                f"Контроль редокинга не пройден: поза №1 лежит в {float(rmsd):.1f} Å от кристаллической "
+                f"({code}), порог {threshold:g} Å. Оценке Vina и положению позы №1 следует доверять "
+                "с осторожностью: найденный карман верен, но скоринг мог поставить лиганд в иную ориентацию."
+            )
+            state.observations["redock_check"] = "failed"
+        else:
+            state.limitations.append(
+                f"Контроль редокинга пройден: поза №1 в {float(rmsd):.1f} Å от кристаллической ({code}), "
+                f"порог {threshold:g} Å. Это проверка метода на этой структуре, а не гарантия для других лигандов."
+            )
+            state.observations["redock_check"] = "passed"
+
+
 def _run_live(state: WorkflowState) -> bool:
     """Запустить Vina для текущей пары. True, если скоринг получен в этом запуске."""
     pdb_id = state.observations.get("pdb_id") or state.request.pdb_id
@@ -104,32 +203,79 @@ def _run_live(state: WorkflowState) -> bool:
         )
         return False
     output_dir = _ROOT / "outputs" / "docking" / run_key(pdb_id, ligand_id)
+    chain = state.observations.get("pdb_chain")
     try:
-        result = dock_pair(str(pdb_id), str(smiles), ligand_id, output_dir)
+        result = dock_pair(
+            str(pdb_id),
+            str(smiles),
+            ligand_id,
+            output_dir,
+            chain=str(chain) if chain else None,
+            crystal_comp_id=_first_comp_id(state),
+        )
     except Exception as exc:  # noqa: BLE001 — граница внешнего бинарника
         state.limitations.append(f"Живой AutoDock Vina не завершился: {exc}")
         return False
 
     state.artifacts["poses_csv"] = str(result.poses_csv)
+    state.artifacts["pockets_csv"] = str(result.pockets_csv)
     state.artifacts["pose_pdbqt"] = str(result.pose_file)
     state.artifacts["receptor_pdbqt"] = str(result.receptor_pdbqt)
+    state.artifacts["receptor_pdb"] = str(result.receptor_pdb)
+    state.artifacts["run_meta"] = str(result.run_meta)
     state.observations["poses_csv_path"] = str(result.poses_csv)
+    state.observations["pockets_csv_path"] = str(result.pockets_csv)
+    state.observations["receptor_pdb_path"] = str(result.receptor_pdb)
     state.observations["docking_mode"] = "live"
+    state.observations["receptor_prep"] = (
+        json.loads(Path(result.run_meta).read_text(encoding="utf-8")).get("receptor_prep")
+        if Path(result.run_meta).is_file()
+        else None
+    )
+    state.observations["pocket_count"] = len(result.pockets)
+    state.observations["pose_count"] = len(result.poses)
+
+    _record_pockets(state, result)
     _record_score(
         state,
-        result.vina_score,
+        result.best.vina_score,
         ligand_id,
-        "site1",
+        result.best.pocket_id,
         str(result.pose_file),
         (
-            "Оценка Vina посчитана в этом запуске. Это не экспериментальная аффинность. "
-            f"Бокс: {result.box_source}. Подготовка лиганда: {result.ligand_prep}."
+            "Поза №1: самая отрицательная оценка Vina среди всех карманов этого прогона "
+            f"({len(result.poses)} поз в {len(result.pockets)} карманах) при одинаковых настройках скоринга. "
+            "Это расчёт, а не экспериментальная аффинность. "
+            f"Источник карманов: {result.box_source}. Подготовка лиганда: {result.ligand_prep}."
         ),
     )
-    state.limitations.append(
-        "Рецептор переведён в PDBQT из координат ATOM без отдельной оптимизации зарядов. "
-        "Карман взят по лиганду кристалла, если он есть, иначе по центру белка."
-    )
+    _record_control(state, result)
+
+    # Оговорка зависит от того, как рецептор был подготовлен на самом деле: при
+    # протонировании pdb2pqr+Meeko она неверна, а при откате на координаты — нужна.
+    # Об откате живой докинг уже сообщает отдельной заметкой.
+    if state.observations.get("receptor_prep") == "coordinates-only":
+        state.limitations.append(
+            "Рецептор переведён в PDBQT из координат ATOM без водородов и типизации Meeko."
+        )
+    requested = int(state.observations.get("pocket_top_n") or 3)
+    found = len(getattr(result, "pockets", []) or [])
+    if 0 < found < requested:
+        state.limitations.append(
+            f"P2Rank нашёл {found} {'карман' if found == 1 else 'кармана'} из запрошенных {requested}: "
+            "список не дополнялся выдуманными центрами, докинг выполнен только в найденных."
+        )
+    if result.box_source == "p2rank":
+        state.limitations.append(
+            "Докинг выполнен вслепую: центры боксов взяты у P2Rank по структуре без лиганда, "
+            "координаты кристаллического лиганда в расчёт не подавались."
+        )
+    else:
+        state.limitations.append(
+            "Карманы предсказать не удалось, бокс поставлен по центру белка. "
+            "Это поиск по всему белку, а не результат P2Rank."
+        )
+    state.limitations.extend(result.notes)
     return True
 
 
@@ -151,7 +297,16 @@ def _load_saved(state: WorkflowState, run_dir: Path) -> bool:
         return False
 
     state.observations["docking_mode"] = "saved"
-    best = min(rows, key=lambda r: r.vina_score)
+    if "poses_csv" in artifacts:
+        state.observations["poses_csv_path"] = artifacts["poses_csv"]
+    if "receptor_pdb" in artifacts:
+        state.observations["receptor_pdb_path"] = artifacts["receptor_pdb"]
+    # Поза №1 выбирается тем же правилом, что и в живом расчёте: иначе
+    # сохранённый и свежий прогоны называли бы «лучшей» разные позы.
+    best = best_pose_overall(rows)
+    if best is None:
+        state.add_error(f"Пустая таблица поз в {run_dir}")
+        return False
     state.observations["best_pose"] = best.pose_file
     state.observations["pose_file"] = best.pose_file
     state.add_evidence(

@@ -6,15 +6,27 @@ from pathlib import Path
 from models.docking import POSE_CSV_FIELDS, PoseRow, load_poses_csv
 
 
+# Что искать в каталоге прогона и под каким именем класть в artifacts.
+# Рецептор попадает сюда отдельно: проверке геометрии (сценарий 4) нужны
+# координаты белка, а раньше при чтении сохранённого прогона на них ничто
+# не указывало и путь приходилось угадывать.
+_RUN_FILES = {
+    "report_md": "report.md",
+    "poses_csv": "poses.csv",
+    "pockets_csv": "pockets.csv",
+    "receptor_pdbqt": "receptor.pdbqt",
+    "receptor_pdb": "receptor.pdb",
+    "run_meta": "run_meta.json",
+}
+
+
 def load_run_directory(example_dir: Path) -> dict[str, str]:
     example_dir = Path(example_dir)
     artifacts: dict[str, str] = {}
-    report = example_dir / "report.md"
-    poses = example_dir / "poses.csv"
-    if report.is_file():
-        artifacts["report_md"] = str(report)
-    if poses.is_file():
-        artifacts["poses_csv"] = str(poses)
+    for key, name in _RUN_FILES.items():
+        path = example_dir / name
+        if path.is_file():
+            artifacts[key] = str(path)
     return artifacts
 
 

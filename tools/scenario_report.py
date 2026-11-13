@@ -28,10 +28,31 @@ def _agent_chain(state: WorkflowState) -> str:
     return " → ".join(chain)
 
 
-def _key_evidence(result: ResearchResult, limit: int = 6) -> list[str]:
+# Что считается ответом на вопрос и потому показывается первым. Раньше брались первые
+# шесть фактов подряд, и в «ключевых значениях» сценария 1 стояли дескрипторы RDKit, а не
+# мишень, accession и структура.
+_PRIORITY = (
+    "uniprot_accession", "pdb_structure", "resolution", "structure_chain", "metal_ion",
+    "Ki", "Kd", "IC50", "target_choice_rationale",
+    "vina_score", "p2rank_pocket", "pocket_hit_rank", "rmsd_to_crystal",
+    "vina_delta_to_best_pose", "contact_gained_in_pose", "contact_lost_in_pose",
+    "key_distance_by_pose", "pose_to_inspect",
+    "geometry_verdict", "checks_passed_percent", "geometry_checks_passed",
+)
+
+
+def _priority_rank(method: str) -> int:
+    base = method.split("_pocket")[0] if method.startswith(("vina_score_pocket", "p2rank_score_pocket")) else method
+    return _PRIORITY.index(base) if base in _PRIORITY else len(_PRIORITY)
+
+
+def _key_evidence(result: ResearchResult, limit: int = 8) -> list[str]:
     seen: set[str] = set()
     lines: list[str] = []
-    for ev in result.evidence:
+    ordered = sorted(
+        enumerate(result.evidence), key=lambda item: (_priority_rank(str(item[1].method or "value")), item[0])
+    )
+    for _, ev in ordered:
         method = str(ev.method or "value")
         if method in seen:
             continue
@@ -116,6 +137,15 @@ def write_scenarios_md(runs: list[dict[str, Any]], path: Path | None = None) -> 
                 "",
                 f"**Ожидаемый ответ:** {run['expected'] or '—'}",
                 "",
+                *(
+                    [
+                        "**Контекст из предыдущего шага цепочки:** "
+                        + ", ".join(f"`{k}` = {v}" for k, v in run["carried_context"].items()),
+                        "",
+                    ]
+                    if run.get("carried_context")
+                    else []
+                ),
                 f"**Действия системы:** {run['agents'] or '—'}",
                 "",
                 f"**Планировщик:** `{run['planner'] or '—'}`",

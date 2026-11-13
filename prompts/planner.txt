@@ -27,7 +27,8 @@
 Пример для запроса «посчитай свойства ибупрофена»:
 {"scenario_id":"target_for_ligand","ligands":["ibuprofen"],"smiles":null,"target_hint":null,"pdb_id":null,"poses_csv_path":null,"pose_file":null,"ligand_id":"ibuprofen","explanation_hint":"расчётные свойства молекулы"}
 
-Пример для запроса «докинг соединения X в 4XYZ»:
-{"scenario_id":"dock_pockets","ligands":["X"],"smiles":null,"target_hint":null,"pdb_id":"4XYZ","poses_csv_path":null,"pose_file":null,"ligand_id":"X","explanation_hint":"докинг в названную структуру"}
+Пример для запроса «докинг иматиниба в 4XYZ»:
+{"scenario_id":"dock_pockets","ligands":["imatinib"],"smiles":null,"target_hint":null,"pdb_id":"4XYZ","poses_csv_path":null,"pose_file":null,"ligand_id":"imatinib","explanation_hint":"докинг в названную структуру"}
 
 Для составного запроса scenario_id — первый шаг. Остальные шаги система добавит сама.
+Если молекула, мишень, структура или путь к файлу в запросе не названы, ставь null. Не придумывай значения и не копируй их из примеров.

@@ -6,8 +6,10 @@ from agents import (
     docking_agent,
     planner,
     pocket_worker,
+    pose_comparison_agent,
     review_agent,
     structure_agent,
+    target_agent,
     validation_agent,
     writer_agent,
 )
@@ -19,8 +21,10 @@ __all__ = [
     "docking_agent",
     "planner",
     "pocket_worker",
+    "pose_comparison_agent",
     "review_agent",
     "structure_agent",
+    "target_agent",
     "validation_agent",
     "writer_agent",
 ]

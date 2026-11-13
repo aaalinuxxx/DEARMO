@@ -1,0 +1,27 @@
+# Вариант для машин, где Ollama уже установлена на хосте (например, Mac с Metal-ускорением,
+# которое Docker Desktop контейнерам не отдаёт). Контейнер Ollama и повторная загрузка модели
+# не нужны: приложение обращается к хосту.
+#
+#   ollama pull qwen2.5:7b-instruct          # один раз, на хосте
+#   docker compose -f docker-compose.host-ollama.yml run --rm dearmo demo
+#
+# На Linux добавлена строка extra_hosts, чтобы host.docker.internal тоже работал.
+
+name: dearmo-host
+
+services:
+  dearmo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DEARMO_LLM_PROVIDER: ollama
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      OLLAMA_TIMEOUT_S: ${OLLAMA_TIMEOUT_S:-300}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./outputs:/app/outputs
+      - ./data/cache:/app/data/cache
+    restart: "no"
