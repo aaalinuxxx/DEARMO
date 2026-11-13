@@ -1,4 +1,4 @@
-# DEARMO
+# DRUGDIS
 
 **Мультиагентная система для дизайна лекарственных молекул.** Кейс №1 хакатона «ХИМБИО-ХАКАТОН СИНТЕЗ 2026» (ПИШ ИТМО).
 
@@ -36,12 +36,12 @@
 
 ## Запуск для проверки
 
-Нужен только Docker. Внутри образа уже есть Python-стек, AutoDock Vina, P2Rank и Java; Qwen работает в соседнем контейнере и скачивается автоматически.
+Самый быстрый способ развернуть и проверить систему — Docker Compose. Контейнер автоматически скачивает модель `qwen2.5:7b` в изолированный Ollama и собирает внешние бинарники.
 
 ### Вариант 1. Всё в контейнерах (рекомендуется)
 
 ```bash
-git clone https://github.com/aaalinuxxx/DEARMO.git && cd DEARMO
+git clone https://github.com/aaalinuxxx/DRUGDIS.git && cd DRUGDIS
 docker compose up --build --abort-on-container-exit --exit-code-from dearmo
 ```
 
@@ -52,7 +52,7 @@ docker compose up --build --abort-on-container-exit --exit-code-from dearmo
 3. приложение дождётся модели и выполнит все четыре сценария кейса одной цепочкой;
 4. результаты (CSV, JSON, графики, отчёты) останутся на хосте в `outputs/`.
 
-Если модель недоступна, контейнер **останавливается с понятной ошибкой**, а не подменяет Qwen ключевыми словами молча.
+Если модель недоступна, контейнер **остановится с понятной ошибкой**.
 
 | Что нужно | Минимум |
 | --- | --- |
@@ -67,24 +67,24 @@ docker compose up --build --abort-on-container-exit --exit-code-from dearmo
 
 ```bash
 ollama pull qwen2.5:7b-instruct
-docker compose -f docker-compose.host-ollama.yml run --rm dearmo demo
+docker compose -f docker-compose.host-ollama.yml run --rm drugdis demo
 ```
 
 ### Вариант 3. Видеокарта NVIDIA
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build \
-    --abort-on-container-exit --exit-code-from dearmo
+    --abort-on-container-exit --exit-code-from drugdis
 ```
 
 ### Отдельные запросы и самопроверка
 
 ```bash
 # проверка окружения: Python, RDKit, Vina, P2Rank, Java, Qwen, доступность баз
-docker compose run --rm dearmo doctor
+docker compose run --rm drugdis doctor
 
 # то же плюс настоящий расчёт P2Rank и Vina на встроенной структуре (секунды, без сети)
-docker compose run --rm dearmo doctor --deep
+docker compose run --rm drugdis doctor --deep
 
 # любой собственный запрос
 docker compose run --rm dearmo ask "Подбери белок-мишень для иматиниба и обоснуй выбор экспериментальными данными."
@@ -92,10 +92,6 @@ docker compose run --rm dearmo ask "Подбери белок-мишень дл�
 # тесты в контейнере
 docker compose --profile test run --rm tests
 ```
-
-`doctor` называет каждую проблему по имени: «нет Java», «модель не скачана», «не хватает памяти под Qwen», «PubChem недоступен». Недоступность внешней базы — предупреждение, а не отказ: ChEMBL, например, иногда отвечает HTTP 500, и система это переносит.
-
-Бинарники Vina в образе статические и подбираются под архитектуру сборки (x86_64 и arm64). Сборка проверена на arm64; на x86_64 тот же Dockerfile берёт официальный бинарник `vina_1.2.7_linux_x86_64`, но отдельно не прогонялся. Контейнер работает от root намеренно: каталоги `outputs/` и `data/cache/` монтируются с хоста.
 
 ---
 
@@ -207,8 +203,6 @@ flowchart TD
     det --> out(["Ответ: статус, Evidence,<br/>ограничения, артефакты"])
 ```
 
-Порядок сценариев всегда научный: мишень → докинг → сравнение поз → проверка позы. В план попадают те шаги, которые распознал запрос, **и те, без которых они невыполнимы**.
-
 ### Достройка зависимостей
 
 Исполнитель сверяет вход каждого шага со списком обязательных полей. Запрос «проверь позу эрлотиниба в 1M17» не падает с «укажите файл позы»: система сама добавляет докинг, потому что позу сперва надо посчитать.
@@ -240,7 +234,7 @@ flowchart LR
 
 ## Как система не выдумывает результаты
 
-Требование кейса — прозрачное разделение расчётов, предсказаний и гипотез и отсутствие выдуманных результатов. В DEARMO оно обеспечено **механизмом**, а не просьбой в промпте.
+Требование кейса — прозрачное разделение расчётов, предсказаний и гипотез и отсутствие выдуманных результатов. В DRUGDIS оно обеспечено **механизмом**, а не просьбой в промпте.
 
 ### Происхождение каждого значения
 
@@ -468,7 +462,7 @@ export P2RANK_BIN=/путь/к/p2rank/prank  # релизы: github.com/rdk/p2ra
 
 ```bash
 ollama pull qwen2.5:7b-instruct
-export DEARMO_LLM_PROVIDER=ollama       # auto | ollama | keyword
+export DRUGDIS_LLM_PROVIDER=ollama       # auto | ollama | keyword
 ```
 
 Проверка и запуск:
@@ -482,7 +476,7 @@ make demo-offline                        # без LLM, документацию 
 python cli.py ask "Подбери белок для докинга гефитиниба и предложи структуру из PDB"
 ```
 
-Переменные окружения: `DEARMO_LLM_PROVIDER`, `OLLAMA_HOST`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_S`, `VINA_BIN`, `P2RANK_BIN`, `DOCKING_LIVE` (`0` — брать сохранённый прогон только при точном совпадении структуры и лиганда), `ORC_MAX_POCKETS`.
+Переменные окружения: `DRUGDIS_LLM_PROVIDER`, `OLLAMA_HOST`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_S`, `VINA_BIN`, `P2RANK_BIN`, `DOCKING_LIVE` (`0` — брать сохранённый прогон только при точном совпадении структуры и лиганда), `ORC_MAX_POCKETS`.
 
 ---
 
