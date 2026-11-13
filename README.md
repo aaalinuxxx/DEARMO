@@ -38,11 +38,11 @@
 
 Самый быстрый способ развернуть и проверить систему — Docker Compose. Контейнер автоматически скачивает модель `qwen2.5:7b` в изолированный Ollama и собирает внешние бинарники.
 
-### Вариант 1. Всё в контейнерах (рекомендуется)
+### Вариант 1. Всё в контейнерах. Перед этим запустите контейнер Docker
 
 ```bash
 git clone https://github.com/aaalinuxxx/DRUGDIS.git && cd DRUGDIS
-docker compose up --build --abort-on-container-exit --exit-code-from dearmo
+docker compose up --build --abort-on-container-exit --exit-code-from drugdis
 ```
 
 Что произойдёт:
