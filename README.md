@@ -87,7 +87,7 @@ docker compose run --rm drugdis doctor
 docker compose run --rm drugdis doctor --deep
 
 # любой собственный запрос
-docker compose run --rm dearmo ask "Подбери белок-мишень для иматиниба и обоснуй выбор экспериментальными данными."
+docker compose run --rm drugdis ask "Подбери белок-мишень для иматиниба и обоснуй выбор экспериментальными данными."
 
 # тесты в контейнере
 docker compose --profile test run --rm tests
