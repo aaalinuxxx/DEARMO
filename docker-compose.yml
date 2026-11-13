@@ -1,19 +1,70 @@
+# DEARMO: приложение и локальная Qwen одной командой.
+#
+#   docker compose up --build --abort-on-container-exit --exit-code-from dearmo
+#
+# Что произойдёт: поднимется Ollama, скачается модель (первый раз ~4.7 ГБ), затем приложение
+# выполнит все четыре сценария кейса и завершится. Модель хранится в томе ollama-models,
+# повторные запуски её не скачивают.
+#
+# Отдельные запросы:
+#   docker compose run --rm dearmo ask "Подбери белок-мишень для ацетазоламида"
+#   docker compose run --rm dearmo doctor --deep      # самопроверка окружения
+#
+# Нужно около 6 ГБ свободной RAM под Qwen 7B. Если памяти мало, возьмите модель поменьше:
+#   OLLAMA_MODEL=qwen2.5:3b-instruct docker compose up --build ...
+
+name: dearmo
+
 services:
-  dearmo-cli:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+    restart: unless-stopped
+
+  model-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+    entrypoint: ["/bin/sh", "-c", "ollama pull \"$${OLLAMA_MODEL}\""]
+    restart: "no"
+
+  dearmo:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env
+    depends_on:
+      model-pull:
+        condition: service_completed_successfully
+    environment:
+      DEARMO_LLM_PROVIDER: ollama
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+      OLLAMA_TIMEOUT_S: ${OLLAMA_TIMEOUT_S:-300}
     volumes:
+      # Результаты прогонов и кеш ответов баз остаются на хосте: их можно открыть и сравнить.
       - ./outputs:/app/outputs
       - ./data/cache:/app/data/cache
-    entrypoint: ["python", "cli.py"]
-    command: ["demo", "--export-dir", "outputs/demo"]
+    restart: "no"
 
-  dearmo-tests:
+  tests:
     build:
       context: .
       dockerfile: Dockerfile
-    entrypoint: ["pytest"]
-    command: ["-v", "tests/"]
+    profiles: ["test"]
+    environment:
+      DEARMO_LLM_PROVIDER: keyword
+    entrypoint: ["/app/docker/entrypoint.sh", "pytest"]
+    command: ["-q", "-p", "no:cacheprovider"]
+
+volumes:
+  ollama-models:

@@ -1,0 +1,23 @@
+# Не копируем в образ: окружения, кеши, результаты и бинарники под другую платформу.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.github/
+.idea/
+.vscode/
+.DS_Store
+.env
+
+# Результаты прогонов и кеш API: монтируются с хоста
+outputs/
+data/cache/
+
+# Бинарники tools/bin собраны под macOS; в образе свои, под Linux (см. Dockerfile)
+tools/bin/
+
+# Раздаточные материалы и внутренние заметки
+*.pdf
+docs/plan.jpg
+research_notes/

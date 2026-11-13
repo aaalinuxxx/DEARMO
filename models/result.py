@@ -2,8 +2,10 @@
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-# TODO (IT 2): согласовать состояния частичного успеха и формат ошибок API.
-ResultStatus = Literal["success", "error", "no_data", "needs_clarification"]
+# success — всё запрошенное выполнено; partial — часть шагов не дала результата;
+# needs_clarification — запрос неоднозначен; no_data — источники ничего не вернули;
+# error — расчёт или проверка не состоялись.
+ResultStatus = Literal["success", "partial", "error", "no_data", "needs_clarification"]
 EvidenceKind = Literal["database", "calculation", "prediction", "hypothesis"]
 
 @dataclass
@@ -24,4 +26,3 @@ class ResearchResult:
     explanation: str | None = None
     limitations: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    # TODO (IT 2 + биологи): утвердить поля assay и связи утверждений с Evidence.

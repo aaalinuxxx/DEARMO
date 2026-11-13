@@ -42,136 +42,8 @@ _UNIT_TO_NM_FACTOR: dict[str, float] = {
     "fmol/l": 1e-6,
 }
 
-# Синонимы известных молекул и мишеней для надёжного разрешения в оффлайн- и онлайн-режимах
-_MOLECULE_ALIASES: dict[str, dict[str, Any]] = {
-    "acetazolamide": {
-        "molecule_chembl_id": "CHEMBL20",
-        "pref_name": "ACETAZOLAMIDE",
-        "canonical_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-    },
-    "ацетазоламид": {
-        "molecule_chembl_id": "CHEMBL20",
-        "pref_name": "ACETAZOLAMIDE",
-        "canonical_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-    },
-    "chembl20": {
-        "molecule_chembl_id": "CHEMBL20",
-        "pref_name": "ACETAZOLAMIDE",
-        "canonical_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-    },
-    "methazolamide": {
-        "molecule_chembl_id": "CHEMBL422",
-        "pref_name": "METHAZOLAMIDE",
-        "canonical_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-    },
-    "метазоламид": {
-        "molecule_chembl_id": "CHEMBL422",
-        "pref_name": "METHAZOLAMIDE",
-        "canonical_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-    },
-    "ethoxzolamide": {
-        "molecule_chembl_id": "CHEMBL533",
-        "pref_name": "ETHOXZOLAMIDE",
-        "canonical_smiles": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1",
-    },
-    "dorzolamide": {
-        "molecule_chembl_id": "CHEMBL278980",
-        "pref_name": "DORZOLAMIDE",
-        "canonical_smiles": "CCNC1CC(C)S(=O)(=O)c2sc(S(N)(=O)=O)cc12",
-    },
-    "benzamidine": {
-        "molecule_chembl_id": "CHEMBL12131",
-        "pref_name": "BENZAMIDINE",
-        "canonical_smiles": "NC(=N)c1ccccc1",
-    },
-}
-
-_TARGET_ALIASES: dict[str, str] = {
-    "chembl205": "CHEMBL205",
-    "ca2": "CHEMBL205",
-    "ca ii": "CHEMBL205",
-    "carbonic anhydrase 2": "CHEMBL205",
-    "carbonic anhydrase": "CHEMBL205",
-    "carbonic anhydrase ii": "CHEMBL205",
-    "карбоангидраза ii": "CHEMBL205",
-    "карбоангидраза 2": "CHEMBL205",
-    "trypsin": "CHEMBL209",
-    "трипсин": "CHEMBL209",
-}
-
-# Эталонные данные ChEMBL по карбоангидразе II человека (CHEMBL205) для оффлайн-работы
-_OFFLINE_ACTIVITIES: dict[tuple[str, str], list[dict[str, Any]]] = {
-    ("CHEMBL205", "CHEMBL20"): [
-        {
-            "molecule_chembl_id": "CHEMBL20",
-            "target_chembl_id": "CHEMBL205",
-            "target_pref_name": "Carbonic anhydrase II",
-            "target_organism": "Homo sapiens",
-            "assay_chembl_id": "CHEMBL658249",
-            "assay_type": "B",
-            "assay_description": "Inhibition of human recombinant Carbonic anhydrase II (CO2 hydration assay)",
-            "standard_type": "Ki",
-            "standard_relation": "=",
-            "standard_value": "12.0",
-            "standard_units": "nM",
-            "pchembl_value": "7.92",
-            "document_chembl_id": "CHEMBL1145821",
-            "data_validity_comment": None,
-        },
-        {
-            "molecule_chembl_id": "CHEMBL20",
-            "target_chembl_id": "CHEMBL205",
-            "target_pref_name": "Carbonic anhydrase II",
-            "target_organism": "Homo sapiens",
-            "assay_chembl_id": "CHEMBL872914",
-            "assay_type": "B",
-            "assay_description": "Inhibition of human Carbonic anhydrase II esterase activity (4-nitrophenyl acetate)",
-            "standard_type": "IC50",
-            "standard_relation": "=",
-            "standard_value": "0.018",
-            "standard_units": "uM",
-            "pchembl_value": "7.74",
-            "document_chembl_id": "CHEMBL1152904",
-            "data_validity_comment": None,
-        },
-    ],
-    ("CHEMBL205", "CHEMBL422"): [
-        {
-            "molecule_chembl_id": "CHEMBL422",
-            "target_chembl_id": "CHEMBL205",
-            "target_pref_name": "Carbonic anhydrase II",
-            "target_organism": "Homo sapiens",
-            "assay_chembl_id": "CHEMBL658250",
-            "assay_type": "B",
-            "assay_description": "Inhibition of human recombinant Carbonic anhydrase II",
-            "standard_type": "Ki",
-            "standard_relation": "=",
-            "standard_value": "14.0",
-            "standard_units": "nM",
-            "pchembl_value": "7.85",
-            "document_chembl_id": "CHEMBL1145821",
-            "data_validity_comment": None,
-        },
-    ],
-    ("CHEMBL205", "CHEMBL533"): [
-        {
-            "molecule_chembl_id": "CHEMBL533",
-            "target_chembl_id": "CHEMBL205",
-            "target_pref_name": "Carbonic anhydrase II",
-            "target_organism": "Homo sapiens",
-            "assay_chembl_id": "CHEMBL658251",
-            "assay_type": "B",
-            "assay_description": "Inhibition of human recombinant Carbonic anhydrase II",
-            "standard_type": "Ki",
-            "standard_relation": "=",
-            "standard_value": "8.0",
-            "standard_units": "nM",
-            "pchembl_value": "8.10",
-            "document_chembl_id": "CHEMBL1145821",
-            "data_validity_comment": None,
-        },
-    ],
-}
+# Синонимов и рукописных «эталонных» таблиц здесь нет: идентификаторы и активности
+# приходят только из живого ChEMBL или из файлового кэша реального ответа API.
 
 
 def _now_iso() -> str:
@@ -216,22 +88,42 @@ def _write_cache(prefix: str, key: str, payload: Any, fetched_at: str | None = N
     return ts
 
 
+_LAST_TRANSPORT: dict[str, Any] = {"reachable": None, "detail": None}
+
+
+def transport_status() -> dict[str, Any]:
+    """Был ли живой ChEMBL доступен в последнем обращении.
+
+    Нужно, чтобы отличать «активностей нет» от «API не ответил»: во втором случае
+    агент обязан сказать об этом вслух, а не делать вид, что данных не существует.
+    """
+    return dict(_LAST_TRANSPORT)
+
+
+def reset_transport_status() -> None:
+    _LAST_TRANSPORT.update({"reachable": None, "detail": None})
+
+
 def _get_json(url: str, *, timeout: float = 3.0, max_retries: int = 1) -> dict[str, Any] | None:
     headers = {"Accept": "application/json"}
     for attempt in range(max_retries):
         try:
             req = urllib.request.Request(url, headers=headers, method="GET")
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+                payload = json.loads(resp.read().decode("utf-8"))
+            _LAST_TRANSPORT.update({"reachable": True, "detail": None})
+            return payload
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503, 504) and attempt + 1 < max_retries:
                 time.sleep(0.2 * (attempt + 1))
                 continue
+            _LAST_TRANSPORT.update({"reachable": False, "detail": f"HTTP {exc.code}"})
             return None
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
             if attempt + 1 < max_retries:
                 time.sleep(0.1 * (attempt + 1))
                 continue
+            _LAST_TRANSPORT.update({"reachable": False, "detail": type(exc).__name__})
             return None
     return None
 
@@ -431,19 +323,6 @@ def resolve_molecule(query: str, *, use_cache: bool = True) -> dict[str, Any]:
     key = query.strip()
     lower = key.lower()
 
-    if lower in _MOLECULE_ALIASES:
-        info = dict(_MOLECULE_ALIASES[lower])
-        info.update(
-            {
-                "query": key,
-                "source": "chembl_alias",
-                "is_cached": True,
-                "fetched_at": "offline-alias",
-                "ambiguous": False,
-            }
-        )
-        return info
-
     if re.match(r"^chembl\d+$", lower):
         return {
             "query": key,
@@ -518,17 +397,85 @@ def resolve_molecule(query: str, *, use_cache: bool = True) -> dict[str, Any]:
     }
 
 
-def resolve_target_id(target_id_or_name: str) -> str:
-    """Привести название мишени или код к ChEMBL ID (например, CHEMBL205 для CA II)."""
-    if not isinstance(target_id_or_name, str) or not target_id_or_name.strip():
-        return "CHEMBL205"
-    clean = target_id_or_name.strip()
+def lookup_target_chembl_id(name: str, *, use_cache: bool = True) -> str | None:
+    """Найти target_chembl_id по названию белка. Пустое имя не подменяется на CA II."""
+    if not isinstance(name, str) or not name.strip():
+        return None
+    clean = name.strip()
     lower = clean.lower()
-    if lower in _TARGET_ALIASES:
-        return _TARGET_ALIASES[lower]
     if re.match(r"^chembl\d+$", lower):
         return clean.upper()
+    if use_cache:
+        cached = _read_cache("target", lower)
+        if cached is not None:
+            payload, _fetched = cached
+            if isinstance(payload, dict):
+                return payload.get("target_chembl_id")
+    url = f"{_CHEMBL_API}/target/search.json?q={urllib.parse.quote(clean)}&limit=5"
+    data = _get_json(url)
+    targets = data.get("targets") if isinstance(data, dict) else None
+    if isinstance(targets, list) and targets:
+        chembl_id = targets[0].get("target_chembl_id")
+        if chembl_id:
+            _write_cache("target", lower, {"target_chembl_id": chembl_id, "pref_name": targets[0].get("pref_name")})
+            return chembl_id
+    return None
+
+
+def resolve_target_id(target_id_or_name: str) -> str:
+    """Привести название мишени к ChEMBL ID. Пустой ввод не подменяется никакой мишенью."""
+    if not isinstance(target_id_or_name, str) or not target_id_or_name.strip():
+        return ""
+    clean = target_id_or_name.strip()
+    if re.match(r"^chembl\d+$", clean.lower()):
+        return clean.upper()
     return clean
+
+
+def _fetch_by_molecule(
+    molecule_id: str,
+    *,
+    limit: int = 50,
+    use_cache: bool = True,
+) -> list[dict[str, Any]]:
+    """Активности молекулы по всем мишеням, если пользователь не назвал белок."""
+    mol_info = resolve_molecule(molecule_id, use_cache=use_cache)
+    norm_mol = mol_info.get("molecule_chembl_id")
+    if not norm_mol:
+        if re.match(r"^chembl\d+$", molecule_id.strip(), re.IGNORECASE):
+            norm_mol = molecule_id.strip().upper()
+        else:
+            return []
+    cache_key = f"molacts_{norm_mol}_lim{limit}"
+    if use_cache:
+        cached = _read_cache("act", cache_key)
+        if cached is not None:
+            payload, fetched_at = cached
+            out: list[dict[str, Any]] = []
+            for row in payload:
+                item = dict(row)
+                item["is_cached"] = True
+                item["fetched_at"] = fetched_at
+                out.append(item)
+            return out
+    params = urllib.parse.urlencode(
+        {
+            "molecule_chembl_id": norm_mol,
+            "standard_type__in": "IC50,Ki,Kd,EC50",
+            "limit": limit,
+        }
+    )
+    data = _get_json(f"{_CHEMBL_API}/activity.json?{params}")
+    if data and isinstance(data.get("activities"), list) and data["activities"]:
+        fetched_at = _now_iso()
+        normalized = [
+            _normalize_record(raw, is_cached=False, fetched_at=fetched_at, source="chembl")
+            for raw in data["activities"]
+        ]
+        deduped, _ = deduplicate_activities(normalized)
+        _write_cache("act", cache_key, deduped, fetched_at=fetched_at)
+        return deduped
+    return []
 
 
 def fetch_activities(
@@ -538,8 +485,15 @@ def fetch_activities(
     limit: int = 50,
     use_cache: bool = True,
 ) -> list[dict[str, Any]]:
-    """Получить и нормализовать данные биологической активности из ChEMBL для пары (мишень, молекула)."""
+    """Активности ChEMBL: по названной мишени или, если её нет, по молекуле без подстановки CA II."""
+    if not str(target_id or "").strip():
+        return _fetch_by_molecule(molecule_id, limit=limit, use_cache=use_cache)
     norm_target = resolve_target_id(target_id)
+    if not re.match(r"^CHEMBL\d+$", norm_target, re.IGNORECASE):
+        found = lookup_target_chembl_id(target_id, use_cache=use_cache)
+        if not found:
+            return _fetch_by_molecule(molecule_id, limit=limit, use_cache=use_cache)
+        norm_target = found
     mol_info = resolve_molecule(molecule_id, use_cache=use_cache)
     norm_mol = mol_info.get("molecule_chembl_id")
     if not norm_mol:
@@ -560,21 +514,6 @@ def fetch_activities(
                 r["fetched_at"] = fetched_at
                 out.append(r)
             return out
-
-    import os
-    offline_raw = _OFFLINE_ACTIVITIES.get((norm_target, norm_mol))
-    if offline_raw and os.getenv("DEARMO_OFFLINE", "0") == "1":
-        normalized = [
-            _normalize_record(
-                raw,
-                is_cached=True,
-                fetched_at="offline-reference",
-                source="chembl_offline",
-            )
-            for raw in offline_raw
-        ]
-        deduped, _ = deduplicate_activities(normalized)
-        return deduped
 
     if not re.match(r"^CHEMBL\d+$", norm_target, re.IGNORECASE):
         return []
@@ -597,19 +536,6 @@ def fetch_activities(
         ]
         deduped, _ = deduplicate_activities(normalized)
         _write_cache("act", cache_key, deduped, fetched_at=fetched_at)
-        return deduped
-
-    if offline_raw:
-        normalized = [
-            _normalize_record(
-                raw,
-                is_cached=True,
-                fetched_at="offline-reference",
-                source="chembl_offline",
-            )
-            for raw in offline_raw
-        ]
-        deduped, _ = deduplicate_activities(normalized)
         return deduped
 
     return []

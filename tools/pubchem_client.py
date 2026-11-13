@@ -16,90 +16,12 @@ from tools.rdkit_tools import parse_smiles, tanimoto_similarity
 
 _PUG = "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_PUBCHEM_FILE = _REPO_ROOT / "data" / "external" / "pubchem" / "acetazolamide.json"
+_PUBCHEM_DIR = _REPO_ROOT / "data" / "external" / "pubchem"
 _CACHE_DIR = _REPO_ROOT / "data" / "cache" / "pubchem"
 
-_FALLBACK_SMILES = {
-    "acetazolamide": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-    "ацетазоламид": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-    "methazolamide": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-    "метазоламид": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-    "ethoxzolamide": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1",
-    "этоксзоламид": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1",
-    "benzamidine": "NC(=N)c1ccccc1",
-    "бензамидин": "NC(=N)c1ccccc1",
-    "aspirin": "CC(=O)Oc1ccccc1C(=O)O",
-    "аспирин": "CC(=O)Oc1ccccc1C(=O)O",
-}
-
-_FALLBACK_CIDS = {
-    "acetazolamide": (1986, "Acetazolamide", 222.25),
-    "ацетазоламид": (1986, "Acetazolamide", 222.25),
-    "methazolamide": (4100, "Methazolamide", 236.28),
-    "метазоламид": (4100, "Methazolamide", 236.28),
-    "ethoxzolamide": (3295, "Ethoxzolamide", 258.32),
-    "этоксзоламид": (3295, "Ethoxzolamide", 258.32),
-    "benzamidine": (2332, "Benzamidine", 120.15),
-    "бензамидин": (2332, "Benzamidine", 120.15),
-    "aspirin": (2244, "Aspirin", 180.16),
-    "аспирин": (2244, "Aspirin", 180.16),
-}
-
-# Словарь заведомо неоднозначных общих названий/классов соединений
-_AMBIGUOUS_NAMES: dict[str, list[dict[str, Any]]] = {
-    "сульфонамид": [
-        {"cid": 1986, "title": "Acetazolamide", "connectivity_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1"},
-        {"cid": 4100, "title": "Methazolamide", "connectivity_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C"},
-        {"cid": 5333, "title": "Sulfanilamide", "connectivity_smiles": "Nc1ccc(S(N)(=O)=O)cc1"},
-    ],
-    "sulfonamide": [
-        {"cid": 1986, "title": "Acetazolamide", "connectivity_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1"},
-        {"cid": 4100, "title": "Methazolamide", "connectivity_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C"},
-        {"cid": 5333, "title": "Sulfanilamide", "connectivity_smiles": "Nc1ccc(S(N)(=O)=O)cc1"},
-    ],
-    "ингибитор": [
-        {"cid": 1986, "title": "Acetazolamide", "connectivity_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1"},
-        {"cid": 3154, "title": "Dorzolamide", "connectivity_smiles": "CCNC1CC(C)S(=O)(=O)c2sc(S(N)(=O)=O)cc12"},
-    ],
-    "inhibitor": [
-        {"cid": 1986, "title": "Acetazolamide", "connectivity_smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1"},
-        {"cid": 3154, "title": "Dorzolamide", "connectivity_smiles": "CCNC1CC(C)S(=O)(=O)c2sc(S(N)(=O)=O)cc12"},
-    ],
-}
-
-# Оффлайн-каталог проверенных аналогов сульфонамидных ингибиторов CA II для демо и работы без сети
-_OFFLINE_ANALOGS: list[dict[str, Any]] = [
-    {
-        "cid": 4100,
-        "title": "Methazolamide",
-        "connectivity_smiles": "CC(=O)N=c1sc(S(N)(=O)=O)nn1C",
-        "molecular_weight": 236.28,
-    },
-    {
-        "cid": 3295,
-        "title": "Ethoxzolamide",
-        "connectivity_smiles": "CCOc1ccc2nc(S(N)(=O)=O)sc2c1",
-        "molecular_weight": 258.32,
-    },
-    {
-        "cid": 3154,
-        "title": "Dorzolamide",
-        "connectivity_smiles": "CCNC1CC(C)S(=O)(=O)c2sc(S(N)(=O)=O)cc12",
-        "molecular_weight": 324.44,
-    },
-    {
-        "cid": 68844,
-        "title": "Brinzolamide",
-        "connectivity_smiles": "CCNC1CN(CCCOC)S(=O)(=O)c2sc(S(N)(=O)=O)cc12",
-        "molecular_weight": 383.51,
-    },
-    {
-        "cid": 3038,
-        "title": "Dichlorphenamide",
-        "connectivity_smiles": "NS(=O)(=O)c1cc(S(N)(=O)=O)c(Cl)c(Cl)c1",
-        "molecular_weight": 305.16,
-    },
-]
+# Здесь нет оффлайн-справочников молекул, CID и «проверенных аналогов»:
+# любая структура приходит из живого PubChem или из кэша реального ответа.
+# Неоднозначность названия определяется тем, что поиск вернул несколько разных структур.
 
 
 def _now_iso() -> str:
@@ -213,27 +135,14 @@ def resolve_compound(name_or_smiles: str, *, use_cache: bool = True) -> dict[str
     key = name_or_smiles.strip()
     lower = key.lower()
 
-    # 1. Проверка заведомо неоднозначных названий
-    if lower in _AMBIGUOUS_NAMES:
-        candidates = _AMBIGUOUS_NAMES[lower]
-        return {
-            "query": key,
-            "ambiguous": True,
-            "status": "needs_clarification",
-            "candidates": candidates,
-            "error": "ambiguous_query",
-            "message": f"Название '{key}' неоднозначно и соответствует нескольким соединениям. Уточните CID или SMILES.",
-            "source": "pubchem",
-            "is_cached": False,
-        }
-
-    # 2. Проверка локального файла предзагрузки для ацетазоламида
-    if use_cache and lower in ("acetazolamide", "ацетазоламид") and _PUBCHEM_FILE.is_file():
+    # 2. Предзагруженный файл по имени молекулы, если он есть в data/external/pubchem/
+    preloaded = _PUBCHEM_DIR / f"{re.sub(r'[^a-z0-9_-]', '', lower)}.json"
+    if use_cache and preloaded.is_file():
         try:
-            mtime = datetime.fromtimestamp(_PUBCHEM_FILE.stat().st_mtime, tz=timezone.utc).strftime(
+            mtime = datetime.fromtimestamp(preloaded.stat().st_mtime, tz=timezone.utc).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             )
-            with _PUBCHEM_FILE.open(encoding="utf-8") as f:
+            with preloaded.open(encoding="utf-8") as f:
                 payload = json.load(f)
             props = _extract_properties_list(payload)
             first = props[0] if props else {}
@@ -260,7 +169,9 @@ def resolve_compound(name_or_smiles: str, *, use_cache: bool = True) -> dict[str
             return cached
 
     # 4. Определение способа запроса к PubChem PUG REST (CID / SMILES POST / Name GET)
-    prop_fields = "Title,CID,ConnectivitySMILES,CanonicalSMILES,IsomericSMILES,InChIKey,MolecularWeight"
+    # CID запрашивать как свойство нельзя: PUG REST возвращает его всегда сам,
+    # а в списке property он даёт PUGREST.BadRequest «Invalid property» на любой запрос.
+    prop_fields = "Title,ConnectivitySMILES,SMILES,InChIKey,MolecularWeight"
     cid_match = re.match(r"^(?:cid[:\s]*)?(\d+)$", lower)
 
     data: dict[str, Any] | None = None
@@ -346,22 +257,6 @@ def resolve_compound(name_or_smiles: str, *, use_cache: bool = True) -> dict[str
             return result
 
     # 6. Откат на локальный справочник для известных соединений или если передан валидный SMILES без сети
-    if lower in _FALLBACK_SMILES:
-        cid_val, title_val, mw_val = _FALLBACK_CIDS.get(lower, (1986, key.title(), None))
-        return {
-            "query": key,
-            "query_mode": query_mode,
-            "cid": cid_val,
-            "title": title_val,
-            "connectivity_smiles": _FALLBACK_SMILES[lower],
-            "canonical_smiles": _FALLBACK_SMILES[lower],
-            "molecular_weight": mw_val,
-            "source": "pubchem_fallback",
-            "is_cached": True,
-            "fetched_at": "offline-fallback",
-            "ambiguous": False,
-        }
-
     if query_mode == "smiles":
         return {
             "query": key,
@@ -427,12 +322,12 @@ def search_similar(
         cids_str = ",".join(str(c) for c in cids[:max_records])
         prop_url = (
             f"{_PUG}/compound/cid/{cids_str}"
-            "/property/Title,CID,ConnectivitySMILES,CanonicalSMILES,MolecularWeight/JSON"
+            "/property/Title,ConnectivitySMILES,SMILES,MolecularWeight/JSON"
         )
         prop_data = _get_json(prop_url)
         if prop_data:
             for item in _extract_properties_list(prop_data):
-                cand_smiles = item.get("ConnectivitySMILES") or item.get("CanonicalSMILES")
+                cand_smiles = item.get("ConnectivitySMILES") or item.get("SMILES")
                 if not cand_smiles:
                     continue
                 try:
@@ -465,30 +360,16 @@ def search_similar(
         _write_cache("similar", cache_key, result, fetched_at=fetched_at)
         return result
 
-    # Откат на проверенную оффлайн-выборку аналогов при недоступности сети
-    fallback_analogs: list[dict[str, Any]] = []
-    for item in _OFFLINE_ANALOGS:
-        cand_smiles = item["connectivity_smiles"]
-        if cand_smiles == clean_smiles:
-            continue
-        try:
-            sim = tanimoto_similarity(clean_smiles, cand_smiles)
-        except ValueError:
-            sim = 0.0
-        fallback_analogs.append(
-            {
-                **item,
-                "tanimoto_similarity": sim,
-                "source": "pubchem_offline_catalog",
-            }
-        )
-    fallback_analogs.sort(key=lambda x: x.get("tanimoto_similarity", 0.0), reverse=True)
     return {
         "query_smiles": clean_smiles,
         "threshold": threshold,
-        "status": "success",
-        "analogs": fallback_analogs[:max_records],
-        "source": "pubchem_offline_catalog",
-        "is_cached": True,
-        "fetched_at": "offline-fallback",
+        "status": "no_data",
+        "analogs": [],
+        "source": "pubchem",
+        "note": (
+            "Поиск похожих структур в PubChem ничего не вернул или был недоступен. "
+            "Оффлайн-каталог аналогов не подставляется: иначе выдача не относилась бы к этой молекуле."
+        ),
+        "is_cached": False,
+        "fetched_at": _now_iso(),
     }

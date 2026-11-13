@@ -13,6 +13,7 @@ from orchestration.scenarios import SCENARIOS
 from orchestration.state import WorkflowState
 from orchestration.workflow import run_workflow
 from tools.export import export_candidates_csv, export_run_bundle
+from tools import scenario_report
 from tools.ranking import build_candidates_comparison_table
 
 
@@ -35,6 +36,12 @@ def _print_result_objects(result: ResearchResult, state: WorkflowState) -> None:
     print(f"planner: {state.planner_source}")
     print("plan: " + ", ".join(state.plan))
     print("completed: " + ", ".join(state.observations.get("completed_steps") or []))
+    for item in state.observations.get("tool_plans") or []:
+        print(f"tools {item.get('scenario')} ({item.get('source')}): " + ", ".join(item.get("tools") or []))
+    if state.observations.get("pipeline_phase"):
+        print(f"phase: {state.observations['pipeline_phase']}")
+    if state.work_queue:
+        print("queue: " + ", ".join(f"{item.pocket_id}:{item.status}" for item in state.work_queue))
     if result.explanation:
         print()
         print(result.explanation)
@@ -159,6 +166,37 @@ def _run_compare(molecules: list[str], target_id: str, export_dir: str | None) -
     return 0
 
 
+def _rel(value):
+    """Путь относительно репозитория: в документации не должно быть домашних каталогов."""
+    if isinstance(value, (list, tuple)):
+        return [_rel(item) for item in value]
+    text = str(value)
+    root = str(Path(__file__).resolve().parent) + "/"
+    return text[len(root):] if text.startswith(root) else text
+
+
+def _carry_context(previous: dict, state: WorkflowState) -> dict:
+    """Что следующий сценарий цепочки получает от предыдущего.
+
+    Передаются только факты, которые предыдущий шаг действительно установил:
+    молекула, структура, таблица поз и поза №1. Ничего не выдумывается.
+    """
+    obs = state.observations
+    carried = dict(previous)
+    ligand = obs.get("ligand_query")
+    if ligand and not carried.get("molecules"):
+        carried["molecules"] = [str(ligand)]
+    if obs.get("pdb_id"):
+        carried["pdb_id"] = str(obs["pdb_id"])
+    poses = obs.get("poses_csv_path") or state.artifacts.get("poses_csv")
+    if poses:
+        carried["poses_csv_path"] = str(poses)
+    pose = obs.get("best_pose") or state.artifacts.get("pose_pdbqt")
+    if pose:
+        carried["pose_file"] = str(pose)
+    return carried
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="dearmo", description="DEARMO — мультиагентная система из терминала")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -175,13 +213,14 @@ def main(argv: list[str] | None = None) -> int:
 
     demo = sub.add_parser("demo", help="Прогнать все 4 демонстрационных сценария и сохранить контрольные отчёты")
     demo.add_argument("--export-dir", default="outputs/demo", help="Папка для сохранения контрольных результатов")
+    demo.add_argument("--no-docs", action="store_true", help="Не обновлять demo_requests.json и docs/scenarios.md")
 
     comp = sub.add_parser("compare", help="Построить сводную таблицу сравнения нескольких молекул-кандидатов")
     comp.add_argument("molecules", nargs="+", help="Названия или SMILES молекул для сравнения")
-    comp.add_argument("--target", default="CHEMBL205", help="Целевой белок (по умолчанию CHEMBL205 / CA II)")
+    comp.add_argument("--target", default="", help="Мишень ChEMBL (ID или название). По умолчанию — активности по всем мишеням молекулы")
     comp.add_argument("--export-dir", default="outputs/exports", help="Папка для сохранения CSV таблицы")
 
-    sub.add_parser("fetch-data", help="Скачать PDB, BindingDB и PubChem для ацетазоламида")
+    sub.add_parser("fetch-data", help="Скачать опорные PDB, BindingDB и PubChem в локальный кэш")
 
     args = parser.parse_args(argv)
     if args.cmd == "fetch-data":
@@ -192,13 +231,33 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "demo":
+        runs = []
+        # Сценарии кейса — одна цепочка на одной молекуле: мишень -> докинг -> сравнение
+        # поз -> проверка позы. Поэтому результат шага передаётся следующему, как это
+        # делал бы пользователь в одном диалоге. Передача видна в выводе и в отчёте.
+        carried: dict = {}
         for sid, spec in SCENARIOS.items():
             if not spec.demo_request:
                 continue
             print(f"\n=== Сценарий: {sid} ({spec.title}) ===")
-            res, st = run_workflow(ResearchRequest(text=spec.demo_request))
+            if carried:
+                print("контекст из предыдущего шага: " + ", ".join(f"{k}={_rel(v)}" for k, v in carried.items()))
+            res, st = run_workflow(ResearchRequest(text=spec.demo_request, **carried))
             export_run_bundle(res, st, export_dir=args.export_dir, prefix=f"demo_{sid}")
             _print_result_objects(res, st)
+            run = scenario_report.collect(sid, res, st)
+            run["carried_context"] = {k: _rel(v) for k, v in carried.items()}
+            runs.append(run)
+            carried = _carry_context(carried, st)
+        if runs and not args.no_docs:
+            # Описание сценариев пишется из фактического прогона, а не правится руками.
+            print("\nОбновлены файлы описания сценариев:")
+            print(" ", scenario_report.write_demo_requests(runs))
+            print(" ", scenario_report.write_scenarios_md(runs))
+        failed = [run["id"] for run in runs if run["status"] not in ("success", "partial")]
+        if failed:
+            print("\nСценарии без результата: " + ", ".join(failed))
+            return 1
         return 0
 
     if args.cmd == "compare":

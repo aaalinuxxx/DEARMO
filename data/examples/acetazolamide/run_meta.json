@@ -1,0 +1,7 @@
+{
+  "pdb_id": "3HS4",
+  "ligand_id": "acetazolamide",
+  "smiles": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
+  "engine": "AutoDock Vina",
+  "note": "Сохранённый демонстрационный прогон. Используется только для этой пары."
+}

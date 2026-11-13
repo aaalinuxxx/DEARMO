@@ -118,17 +118,12 @@ def append_ligand_descriptors_for_poses(state: WorkflowState, csv_path: Path) ->
     with state.agent_step("chemistry_agent", "ligand_descriptors"):
         rows = load_poses_csv(csv_path)
         ligands = sorted({r.ligand_id for r in rows})
-        smiles_map = {
-            "acetazolamide": "CC(=O)Nc1nnc(S(N)(=O)=O)s1",
-            "benzamidine": "NC(=N)C1=CC=CC=C1",
-            "methylacetate": "CC(=O)OC",
-        }
         for lig in ligands:
-            smi = smiles_map.get(lig)
+            # Структуру лиганда всегда ищем в PubChem: локального словаря SMILES нет.
+            info = resolve_compound(lig)
+            smi = info.get("connectivity_smiles")
             if not smi:
-                info = resolve_compound(lig)
-                smi = info.get("connectivity_smiles")
-            if not smi:
+                state.limitations.append(f"Структура лиганда '{lig}' не найдена в PubChem, дескрипторы не считались.")
                 continue
             desc = calculate_descriptors(smi)
             for item in desc.evidence:

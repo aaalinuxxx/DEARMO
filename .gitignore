@@ -1,8 +1,28 @@
-outputs/
+# Виртуальные окружения и кеши Python
 .venv/
 __pycache__/
 *.pyc
-.env
-.streamlit/secrets.toml
 .pytest_cache/
-outputs/analysis/*.png
+
+# Секреты
+.env
+
+# Результаты прогонов: воспроизводятся командой `python cli.py demo`
+outputs/
+
+# Кеш ответов внешних API: регенерируется автоматически.
+# Опорный офлайн-набор лежит в data/external/ и версионируется.
+data/cache/
+
+# Внешние бинарники: ставятся отдельно (см. README)
+tools/bin/
+
+# Раздаточные материалы хакатона, не часть проекта
+/СИНТЕЗ_кейсы.pdf
+/repos.pdf
+/scenery.pdf
+
+# Служебное
+.DS_Store
+.idea/
+.vscode/

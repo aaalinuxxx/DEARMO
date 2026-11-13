@@ -233,7 +233,7 @@ def rank_candidates(
 def build_candidates_comparison_table(
     molecules: list[str],
     *,
-    target_id: str = "CHEMBL205",
+    target_id: str = "",
     constraints: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Собрать данные из PubChem, RDKit и ChEMBL для списка молекул и построить сводную таблицу сравнения."""

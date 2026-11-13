@@ -1,4 +1,4 @@
-"""CLI докинга: опциональный live P2Rank+Vina; иначе справка."""
+"""Отдельный CLI докинга одной пары: PDB + SMILES -> AutoDock Vina."""
 from __future__ import annotations
 
 import argparse
@@ -11,26 +11,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pdb", required=True, help="PDB ID или путь к PDB")
     parser.add_argument("--smiles", required=True, help="SMILES лиганда")
     parser.add_argument("--output", type=Path, default=Path("outputs/docking_run"))
-    parser.add_argument("--live", action="store_true", help="Запустить P2Rank/Vina (нужны бинарники)")
+    parser.add_argument("--ligand-id", default="ligand", help="Имя лиганда для poses.csv")
     args = parser.parse_args(argv)
 
-    if not args.live:
-        print(
-            "Режим без --live: сохраните прогон в data/examples/ вручную или используйте кеш.",
-            file=sys.stderr,
-        )
-        return 2
+    from tools.live_docking import dock_pair
 
-    from tools.p2rank_runner import run_p2rank
-    from tools.vina_runner import run_vina
-
-    pdb_path = Path(args.pdb)
-    if len(args.pdb) == 4:
-        cache = Path(__file__).resolve().parent.parent / "data" / "cache" / "pdb" / f"{args.pdb.upper()}.pdb"
-        if cache.is_file():
-            pdb_path = cache
-    run_p2rank(pdb_path, args.output)
-    print("P2Rank завершён; подготовьте receptor/ligand PDBQT и вызовите run_vina.", file=sys.stderr)
+    try:
+        result = dock_pair(args.pdb, args.smiles, args.ligand_id, args.output)
+    except Exception as exc:
+        print(f"Живой докинг не выполнен: {exc}", file=sys.stderr)
+        return 1
+    print(f"vina_score: {result.vina_score}")
+    print(f"pose: {result.pose_file}")
+    print(f"box: {result.box_source} center={result.center}")
+    print(f"ligand_prep: {result.ligand_prep}")
     return 0
 
 

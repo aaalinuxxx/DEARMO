@@ -126,9 +126,23 @@ def fetch_all() -> dict[str, str]:
         written[pdb_id] = str(fetch_pdb(pdb_id))
     written["pubchem"] = str(fetch_pubchem_acetazolamide())
     written["bindingdb"] = str(fetch_bindingdb_acetazolamide())
+    # Пути пишутся относительно корня репозитория: абсолютные пути непереносимы
+    # между машинами и раскрывают домашний каталог того, кто качал данные.
+    repo_root = ROOT.parent.parent
+    relative = {}
+    for key, value in written.items():
+        try:
+            relative[key] = str(Path(value).resolve().relative_to(repo_root))
+        except ValueError:
+            relative[key] = str(value)
     manifest = ROOT / "MANIFEST.json"
     manifest.write_text(
-        json.dumps({"files": written, "fetched_at": datetime.now(timezone.utc).isoformat()}, indent=2),
+        json.dumps(
+            {"files": relative, "fetched_at": datetime.now(timezone.utc).isoformat()},
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
         encoding="utf-8",
     )
     return written

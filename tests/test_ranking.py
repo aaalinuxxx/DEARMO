@@ -101,15 +101,22 @@ def test_rank_candidates_handles_missing_and_incomparable_activity():
 
 
 def test_build_candidates_comparison_table_end_to_end():
+    """Таблица строится на расчётных дескрипторах; активности могут отсутствовать.
+
+    Жёстко ожидать конкретные Ki нельзя: это внешние данные, и ChEMBL бывает
+    недоступен. Отсутствие измерения обязано быть None, а не нулём.
+    """
     table = build_candidates_comparison_table(
         ["acetazolamide", "methazolamide", "ethoxzolamide"],
         target_id="CHEMBL205",
     )
     assert len(table) == 3
-    assert all(r["filter_status"] == "passed" for r in table)
-    # Ethoxzolamide имеет Ki = 8.0 nM, Acetazolamide = 12.0 nM, Methazolamide = 14.0 nM
-    ki_vals = [r["ki_nm"] for r in table if r["ki_nm"] is not None]
-    assert len(ki_vals) >= 1 and ki_vals == sorted(ki_vals)
+    assert all(row["filter_status"] == "passed" for row in table)
+    assert all(row["mw"] and row["mw"] > 100 for row in table)
+
+    ki_vals = [row["ki_nm"] for row in table if row["ki_nm"] is not None]
+    assert all(value > 0 for value in ki_vals)
+    assert ki_vals == sorted(ki_vals), "строки с измерениями идут по возрастанию Ki"
 
 
 def test_export_csv_and_json_with_cache_metadata(tmp_path: Path):
