@@ -21,16 +21,16 @@ test-fast: ## Тесты без интеграционных
 	$(PY) -m pytest -q -m "not integration"
 
 demo: ## Прогнать сценарии и обновить docs/scenarios.md
-	DEARMO_LLM_PROVIDER=ollama $(PY) cli.py demo
+	DRUGDIS_LLM_PROVIDER=ollama $(PY) cli.py demo
 
 demo-offline: ## Прогнать сценарии без LLM, не трогая документацию
-	DEARMO_LLM_PROVIDER=keyword $(PY) cli.py demo --no-docs
+	DRUGDIS_LLM_PROVIDER=keyword $(PY) cli.py demo --no-docs
 
 scenario1: ## Сценарий 1: мишень для ацетазоламида (нужна сеть и Ollama)
-	DEARMO_LLM_PROVIDER=ollama $(PY) cli.py ask "Подбери белок-мишень для ацетазоламида и обоснуй выбор экспериментальными данными."
+	DRUGDIS_LLM_PROVIDER=ollama $(PY) cli.py ask "Подбери белок-мишень для ацетазоламида и обоснуй выбор экспериментальными данными."
 
 scenario2: ## Сценарий 2: P2Rank + докинг в топ-3 кармана для эрлотиниба в 1M17
-	DEARMO_LLM_PROVIDER=keyword $(PY) cli.py ask "Найди три наиболее перспективных кармана, проведи докинг эрлотиниба в 1M17 в каждом и покажи лучшую позу по Vina."
+	DRUGDIS_LLM_PROVIDER=keyword $(PY) cli.py ask "Найди три наиболее перспективных кармана, проведи докинг эрлотиниба в 1M17 в каждом и покажи лучшую позу по Vina."
 
 redock: ## Редокинг-бенчмарк: доля поз №1 в пределах 2 Å от кристалла, пишет docs/redocking.md
 	$(PY) -m tools.redock_benchmark

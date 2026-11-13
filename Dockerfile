@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# Образ приложения DEARMO. Внутри всё, что нужно расчётам: Python-стек, AutoDock Vina,
+# Образ приложения DRUGDIS. Внутри всё, что нужно расчётам: Python-стек, AutoDock Vina,
 # P2Rank и Java. Языковая модель живёт в отдельном контейнере `ollama` (см. docker-compose.yml).
 #
 # Образ собирается и на x86_64, и на arm64: бинарники Vina статические и берутся под
@@ -17,7 +17,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MPLBACKEND=Agg \
     VINA_BIN=/usr/local/bin/vina \
     P2RANK_BIN=/opt/p2rank/prank \
-    DEARMO_LLM_PROVIDER=ollama \
+    DRUGDIS_LLM_PROVIDER=ollama \
     OLLAMA_HOST=http://ollama:11434 \
     OLLAMA_MODEL=qwen2.5:7b-instruct
 

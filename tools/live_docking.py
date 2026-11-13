@@ -99,7 +99,7 @@ def locate_pdb(pdb_id: str) -> Path:
     dest = _ROOT / "data" / "cache" / "pdb" / f"{clean}.pdb"
     dest.parent.mkdir(parents=True, exist_ok=True)
     url = f"https://files.rcsb.org/download/{clean}.pdb"
-    req = urllib.request.Request(url, headers={"User-Agent": "DEARMO/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "DRUGDIS/1.0"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         dest.write_bytes(resp.read())
     return dest

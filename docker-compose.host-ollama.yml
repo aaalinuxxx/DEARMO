@@ -3,19 +3,19 @@
 # не нужны: приложение обращается к хосту.
 #
 #   ollama pull qwen2.5:7b-instruct          # один раз, на хосте
-#   docker compose -f docker-compose.host-ollama.yml run --rm dearmo demo
+#   docker compose -f docker-compose.host-ollama.yml run --rm drugdis demo
 #
 # На Linux добавлена строка extra_hosts, чтобы host.docker.internal тоже работал.
 
-name: dearmo-host
+name: drugdis-host
 
 services:
-  dearmo:
+  drugdis:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      DEARMO_LLM_PROVIDER: ollama
+      DRUGDIS_LLM_PROVIDER: ollama
       OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
       OLLAMA_TIMEOUT_S: ${OLLAMA_TIMEOUT_S:-300}

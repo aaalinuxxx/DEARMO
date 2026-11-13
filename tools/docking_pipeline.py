@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="DEARMO docking pipeline (P2Rank + Vina)")
+    parser = argparse.ArgumentParser(description="DRUGDIS docking pipeline (P2Rank + Vina)")
     parser.add_argument("--pdb", required=True, help="PDB ID или путь к PDB")
     parser.add_argument("--smiles", required=True, help="SMILES лиганда")
     parser.add_argument("--output", type=Path, default=Path("outputs/docking_run"))

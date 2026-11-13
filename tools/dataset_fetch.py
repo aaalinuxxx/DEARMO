@@ -13,7 +13,7 @@ PDB_IDS = ("3HS4", "3PTB")
 
 
 def _get(url: str, timeout: float = 60.0) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": "DEARMO/1.0 (research)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "DRUGDIS/1.0 (research)"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 

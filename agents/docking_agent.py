@@ -161,7 +161,7 @@ def _record_control(state: WorkflowState, result) -> None:
                 value=round(float(rmsd), 3),
                 unit="Å",
                 method="rmsd_to_crystal",
-                source="DEARMO rmsd",
+                source="DRUGDIS rmsd",
                 context={
                     "pose_file": result.best.pose_file,
                     "crystal_comp_id": control.get("crystal_comp_id"),

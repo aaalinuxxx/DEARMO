@@ -89,7 +89,7 @@ def _normalize_planner_data(data: dict[str, Any], *, source: str) -> PlannerExtr
 
 
 def provider() -> str:
-    return os.environ.get("DEARMO_LLM_PROVIDER", "auto").strip().lower()
+    return os.environ.get("DRUGDIS_LLM_PROVIDER", "auto").strip().lower()
 
 
 def ollama_host() -> str:
@@ -105,7 +105,7 @@ def _timeout() -> float:
 
 
 def _debug(message: str) -> None:
-    if os.environ.get("DEARMO_LLM_DEBUG", "").lower() in ("1", "true", "yes"):
+    if os.environ.get("DRUGDIS_LLM_DEBUG", "").lower() in ("1", "true", "yes"):
         print(f"[llm] {message}", flush=True)
 
 

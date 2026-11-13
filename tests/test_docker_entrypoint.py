@@ -40,10 +40,10 @@ def test_unreachable_llm_stops_the_container_instead_of_silently_falling_back():
     """Пользователь выбрал Qwen. Если её нет, ответ «как будто от Qwen» был бы обманом."""
     proc = _run(
         {
-            "DEARMO_LLM_PROVIDER": "ollama",
+            "DRUGDIS_LLM_PROVIDER": "ollama",
             "OLLAMA_HOST": "http://127.0.0.1:9",
             "OLLAMA_WAIT_S": "0",
-            "DEARMO_ALLOW_FALLBACK": "0",
+            "DRUGDIS_ALLOW_FALLBACK": "0",
         },
         "--help",
     )
@@ -55,10 +55,10 @@ def test_unreachable_llm_stops_the_container_instead_of_silently_falling_back():
 def test_fallback_is_allowed_only_when_asked_and_is_announced():
     proc = _run(
         {
-            "DEARMO_LLM_PROVIDER": "ollama",
+            "DRUGDIS_LLM_PROVIDER": "ollama",
             "OLLAMA_HOST": "http://127.0.0.1:9",
             "OLLAMA_WAIT_S": "0",
-            "DEARMO_ALLOW_FALLBACK": "1",
+            "DRUGDIS_ALLOW_FALLBACK": "1",
         },
         "--help",
     )
@@ -67,7 +67,7 @@ def test_fallback_is_allowed_only_when_asked_and_is_announced():
 
 
 def test_keyword_provider_does_not_wait_for_ollama():
-    proc = _run({"DEARMO_LLM_PROVIDER": "keyword", "OLLAMA_HOST": "http://127.0.0.1:9"}, "--help")
+    proc = _run({"DRUGDIS_LLM_PROVIDER": "keyword", "OLLAMA_HOST": "http://127.0.0.1:9"}, "--help")
     assert proc.returncode == 0
     assert "жду Ollama" not in proc.stdout + proc.stderr
 

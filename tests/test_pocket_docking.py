@@ -243,7 +243,7 @@ def _write(text: str, name: str) -> Path:
 
     global _TMP
     if _TMP is None:
-        _TMP = Path(tempfile.mkdtemp(prefix="dearmo_pocket_"))
+        _TMP = Path(tempfile.mkdtemp(prefix="drugdis_pocket_"))
     path = _TMP / name
     path.write_text(text, encoding="utf-8")
     return path

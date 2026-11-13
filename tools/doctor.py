@@ -2,7 +2,7 @@
 
     python -m tools.doctor           # быстрая проверка (секунды)
     python -m tools.doctor --deep    # плюс настоящий прогон P2Rank и Vina на встроенной структуре
-    docker compose run --rm dearmo doctor
+    docker compose run --rm drugdis doctor
 
 Зачем она нужна. Без неё сломанное окружение проявляется как странный ответ посреди
 сценария: нет Vina — «докинг не выполнен», нет Java — «P2Rank не нашёл кармана», нет модели —
@@ -161,7 +161,7 @@ def check_network() -> None:
         "ChEMBL": "https://www.ebi.ac.uk/chembl/api/data/status.json",
     }
     for name, url in probes.items():
-        request = urllib.request.Request(url, headers={"User-Agent": "DEARMO-doctor/1.0"})
+        request = urllib.request.Request(url, headers={"User-Agent": "DRUGDIS-doctor/1.0"})
         try:
             with urllib.request.urlopen(request, timeout=12) as resp:
                 _report(OK, f"Сеть: {name}", f"HTTP {resp.status}")
@@ -186,7 +186,7 @@ def check_deep() -> None:
         _report(WARN, "Глубокая проверка", "нет встроенной структуры 3PTB, пропущена")
         return
     started = time.perf_counter()
-    with tempfile.TemporaryDirectory(prefix="dearmo-doctor-") as tmp:
+    with tempfile.TemporaryDirectory(prefix="drugdis-doctor-") as tmp:
         try:
             # SMILES бензамидина передаётся прямо: проверка не должна зависеть от PubChem.
             # Цепь берётся из самой структуры (первая цепь с белковыми атомами), а не из памяти.
@@ -218,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     deep = "--deep" in args
     offline = "--offline" in args
 
-    print("DEARMO doctor: проверка окружения\n")
+    print("DRUGDIS doctor: проверка окружения\n")
     check_python_stack()
     check_vina()
     check_p2rank()

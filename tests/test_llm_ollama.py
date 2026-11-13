@@ -17,7 +17,7 @@ class _Response:
 
 
 def test_plan_with_ollama_parses_json(monkeypatch):
-    monkeypatch.setenv("DEARMO_LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("DRUGDIS_LLM_PROVIDER", "ollama")
     monkeypatch.setenv("OLLAMA_HOST", "http://ollama.test")
 
     def fake_get(url, timeout=0):

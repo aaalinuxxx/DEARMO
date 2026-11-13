@@ -114,7 +114,7 @@ def write_scenarios_md(runs: list[dict[str, Any]], path: Path | None = None) -> 
     path = path or _ROOT / "docs" / "scenarios.md"
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     out: list[str] = [
-        "# Сценарии DEARMO (кейс СИНТЕЗ №1)",
+        "# Сценарии DRUGDIS (кейс СИНТЕЗ №1)",
         "",
         f"Файл сгенерирован командой `python cli.py demo` {stamp}. "
         "Колонка «фактический результат» — вывод этого прогона, а не описание намерений.",

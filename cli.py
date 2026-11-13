@@ -1,4 +1,4 @@
-"""Терминальный интерфейс DEARMO с отображением статуса кэша, экспортом CSV/JSON, сравнением кандидатов и интерактивным уточнением."""
+"""Терминальный интерфейс DRUGDIS с отображением статуса кэша, экспортом CSV/JSON, сравнением кандидатов и интерактивным уточнением."""
 from __future__ import annotations
 
 import argparse
@@ -198,7 +198,7 @@ def _carry_context(previous: dict, state: WorkflowState) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="dearmo", description="DEARMO — мультиагентная система из терминала")
+    parser = argparse.ArgumentParser(prog="drugdis", description="DRUGDIS — мультиагентная система из терминала")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     ask = sub.add_parser("ask", help="Выполнить исследовательский запрос")

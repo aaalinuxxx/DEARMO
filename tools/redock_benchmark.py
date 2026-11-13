@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # Бенчмарк проверяет расчёт, а не языковую модель: ответ LLM здесь не участвует.
-os.environ.setdefault("DEARMO_LLM_PROVIDER", "keyword")
+os.environ.setdefault("DRUGDIS_LLM_PROVIDER", "keyword")
 
 from models.request import ResearchRequest  # noqa: E402
 from orchestration.workflow import run_workflow  # noqa: E402

@@ -24,7 +24,7 @@ RMSD между позами считает сам Vina относительно
 ## Поза №1 по Vina
 
 **pocket1, поза 1, -6,082 ккал/моль.** Это самая отрицательная оценка среди 27 поз во всех 3 карманах.  
-Файл: `/Users/forallxyz/DEARMO/outputs/docking/3PTB_benzamidine_redock/poses/pocket1_pose1.pdbqt`  
+Файл: `/Users/forallxyz/DRUGDIS/outputs/docking/3PTB_benzamidine_redock/poses/pocket1_pose1.pdbqt`  
 Остальные 26 поз сохранены в `outputs/docking/3PTB_benzamidine_redock/poses.csv` для сценария 3.
 
 ## Контроль (кристалл использован только после расчёта)
